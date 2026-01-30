@@ -114,7 +114,8 @@ async def identify_item(request: IdentifyRequest):
                             ]
                         }
                     ],
-                    "max_completion_tokens": 1000
+                    "max_completion_tokens": 2000,
+                    "reasoning_effort": "minimal"
                 }
             )
             
