@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import json
-import base64
 import httpx
 from app.core.config import settings
 
@@ -60,12 +59,23 @@ Respond in JSON format only, with these exact fields:
     "confidence": "high/medium/low"
 }"""
 
+@router.get("/status")
+async def ai_status():
+    """Check if AI identification is properly configured"""
+    has_key = bool(settings.openai_api_key)
+    key_preview = settings.openai_api_key[:8] + "..." if has_key else None
+    return {
+        "configured": has_key,
+        "key_preview": key_preview,
+        "model": "gpt-5-mini"
+    }
+
 @router.post("/identify", response_model=IdentifyResponse)
 async def identify_item(request: IdentifyRequest):
     """Identify an antique item from an image and get value estimate"""
     
     if not settings.openai_api_key:
-        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.")
     
     # Prepare the image for the API
     if request.image.startswith("data:image"):
@@ -84,7 +94,7 @@ async def identify_item(request: IdentifyRequest):
         user_message += f"\n\nAdditional context from the seller: {request.additional_context}"
     
     # Call OpenAI Vision API
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=90.0) as client:
         try:
             response = await client.post(
                 "https://api.openai.com/v1/chat/completions",
@@ -107,12 +117,28 @@ async def identify_item(request: IdentifyRequest):
                     "max_tokens": 1000
                 }
             )
-            response.raise_for_status()
             
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
+            # Check for HTTP errors
+            if response.status_code != 200:
+                error_body = response.text
+                try:
+                    error_json = response.json()
+                    error_msg = error_json.get("error", {}).get("message", error_body)
+                except:
+                    error_msg = error_body
+                raise HTTPException(
+                    status_code=response.status_code, 
+                    detail=f"OpenAI API error ({response.status_code}): {error_msg}"
+                )
+            
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="OpenAI API request timed out. Please try again.")
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail=f"Network error calling OpenAI: {str(e)}")
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error calling AI: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Unexpected error: {type(e).__name__}: {str(e)}")
     
     # Parse the response
     try:
@@ -128,8 +154,12 @@ async def identify_item(request: IdentifyRequest):
         data = json.loads(content.strip())
         return IdentifyResponse(**data)
         
-    except (json.JSONDecodeError, KeyError, IndexError) as e:
-        raise HTTPException(status_code=500, detail=f"Error parsing AI response: {str(e)}")
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI response as JSON: {str(e)}. Raw content: {content[:500]}")
+    except KeyError as e:
+        raise HTTPException(status_code=500, detail=f"Missing field in AI response: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing AI response: {type(e).__name__}: {str(e)}")
 
 @router.post("/quick-value")
 async def quick_value(request: IdentifyRequest):
