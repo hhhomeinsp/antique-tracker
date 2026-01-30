@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Store, Tag, Calendar, TrendingUp } from 'lucide-react';
+import { Store, Tag, Calendar, TrendingUp, BarChart3 } from 'lucide-react';
 import { 
   getAnalyticsSummary, 
   getAnalyticsByStore, 
@@ -14,19 +14,22 @@ export default function Analytics() {
   const [tab, setTab] = useState<Tab>('overview');
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-800">📊 Analytics</h2>
+    <div className="space-y-5">
+      <h2 className="text-2xl font-display font-semibold text-mahogany flex items-center gap-2">
+        <BarChart3 className="text-wine" size={24} />
+        Analytics
+      </h2>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto gap-2 pb-2 -mx-4 px-4">
+      <div className="flex overflow-x-auto gap-2 pb-1 -mx-4 px-4 scrollbar-hide">
         <TabButton active={tab === 'overview'} onClick={() => setTab('overview')}>
           <TrendingUp size={16} /> Overview
         </TabButton>
         <TabButton active={tab === 'stores'} onClick={() => setTab('stores')}>
-          <Store size={16} /> By Store
+          <Store size={16} /> Stores
         </TabButton>
         <TabButton active={tab === 'categories'} onClick={() => setTab('categories')}>
-          <Tag size={16} /> By Category
+          <Tag size={16} /> Categories
         </TabButton>
         <TabButton active={tab === 'days'} onClick={() => setTab('days')}>
           <Calendar size={16} /> Best Days
@@ -50,10 +53,10 @@ function TabButton({ active, onClick, children }: {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
+      className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
         active 
-          ? 'bg-amber-600 text-white' 
-          : 'bg-gray-100 text-gray-600'
+          ? 'bg-wine text-white shadow-lg' 
+          : 'bg-cream-dark text-bronze hover:bg-cream-dark/80'
       }`}
     >
       {children}
@@ -67,25 +70,25 @@ function OverviewTab() {
     queryFn: () => getAnalyticsSummary(90).then(r => r.data),
   });
 
-  if (!summary) return <div className="text-center py-8 text-gray-500">Loading...</div>;
+  if (!summary) return <LoadingState />;
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">Last 90 days</p>
+      <p className="text-sm text-bronze">Last 90 days</p>
       
       <div className="grid grid-cols-2 gap-3">
         <MetricCard label="Total Items" value={summary.total_items} />
         <MetricCard label="In Inventory" value={summary.unsold_items} />
-        <MetricCard label="Items Sold" value={summary.recent_sales.count} />
+        <MetricCard label="Items Sold" value={summary.recent_sales.count} color="text-sage" />
         <MetricCard 
           label="Inventory Value" 
           value={`$${summary.current_inventory_value.toLocaleString()}`} 
         />
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow">
-        <h3 className="font-semibold text-gray-700 mb-3">Sales Performance</h3>
-        <div className="space-y-2">
+      <div className="card p-5">
+        <h3 className="font-display font-semibold text-mahogany mb-4">Sales Performance</h3>
+        <div className="space-y-3">
           <MetricRow label="Revenue" value={`$${summary.recent_sales.revenue.toLocaleString()}`} />
           <MetricRow label="Cost of Goods" value={`$${summary.recent_sales.cost.toLocaleString()}`} />
           <MetricRow 
@@ -107,39 +110,43 @@ function StoresTab() {
     queryFn: () => getAnalyticsByStore().then(r => r.data),
   });
 
-  if (!stores) return <div className="text-center py-8 text-gray-500">Loading...</div>;
+  if (!stores) return <LoadingState />;
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-500">Ranked by total profit</p>
+      <p className="text-sm text-bronze">Ranked by total profit</p>
       
       {stores.length === 0 ? (
-        <p className="text-center py-8 text-gray-500">No store data yet</p>
+        <EmptyState message="No store data yet" />
       ) : (
         stores.map((store: any, i: number) => (
-          <div key={store.store_id} className="bg-white rounded-xl p-4 shadow">
-            <div className="flex items-start justify-between mb-2">
+          <div key={store.store_id} className="card p-4">
+            <div className="flex items-start justify-between mb-3">
               <div>
-                <span className="text-xs text-amber-600 font-medium">#{i + 1}</span>
-                <h3 className="font-medium">{store.store_name}</h3>
-                <p className="text-xs text-gray-400">{store.city}</p>
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-wine/10 text-wine text-xs font-bold flex items-center justify-center">
+                    {i + 1}
+                  </span>
+                  <h3 className="font-semibold text-mahogany">{store.store_name}</h3>
+                </div>
+                <p className="text-xs text-bronze mt-0.5 ml-8">{store.city}</p>
               </div>
-              <span className={`text-lg font-bold ${store.total_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-lg font-display font-bold ${store.total_profit >= 0 ? 'text-sage' : 'text-wine'}`}>
                 ${store.total_profit.toLocaleString()}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-xs text-gray-600">
-              <div>
-                <p className="text-gray-400">Items</p>
-                <p className="font-medium">{store.total_items}</p>
+            <div className="grid grid-cols-3 gap-3 text-xs">
+              <div className="bg-cream-dark rounded-lg p-2 text-center">
+                <p className="text-bronze">Items</p>
+                <p className="font-semibold text-mahogany">{store.total_items}</p>
               </div>
-              <div>
-                <p className="text-gray-400">Sold</p>
-                <p className="font-medium">{store.sold_items}</p>
+              <div className="bg-cream-dark rounded-lg p-2 text-center">
+                <p className="text-bronze">Sold</p>
+                <p className="font-semibold text-mahogany">{store.sold_items}</p>
               </div>
-              <div>
-                <p className="text-gray-400">Avg Margin</p>
-                <p className="font-medium">{store.avg_profit_margin.toFixed(0)}%</p>
+              <div className="bg-cream-dark rounded-lg p-2 text-center">
+                <p className="text-bronze">Margin</p>
+                <p className="font-semibold text-mahogany">{store.avg_profit_margin.toFixed(0)}%</p>
               </div>
             </div>
           </div>
@@ -155,42 +162,44 @@ function CategoriesTab() {
     queryFn: () => getAnalyticsByCategory().then(r => r.data),
   });
 
-  if (!categories) return <div className="text-center py-8 text-gray-500">Loading...</div>;
+  if (!categories) return <LoadingState />;
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-500">Ranked by total profit</p>
+      <p className="text-sm text-bronze">Ranked by total profit</p>
       
       {categories.length === 0 ? (
-        <p className="text-center py-8 text-gray-500">No category data yet</p>
+        <EmptyState message="No category data yet" />
       ) : (
         categories.map((cat: any, i: number) => (
-          <div key={cat.category} className="bg-white rounded-xl p-4 shadow">
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <span className="text-xs text-amber-600 font-medium">#{i + 1}</span>
-                <h3 className="font-medium capitalize">{cat.category.replace('_', ' ')}</h3>
+          <div key={cat.category} className="card p-4">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-gold/20 text-gold-dark text-xs font-bold flex items-center justify-center">
+                  {i + 1}
+                </span>
+                <h3 className="font-semibold text-mahogany capitalize">{cat.category.replace('_', ' ')}</h3>
               </div>
-              <span className={`text-lg font-bold ${cat.total_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-lg font-display font-bold ${cat.total_profit >= 0 ? 'text-sage' : 'text-wine'}`}>
                 ${cat.total_profit.toLocaleString()}
               </span>
             </div>
-            <div className="grid grid-cols-4 gap-2 text-xs text-gray-600">
-              <div>
-                <p className="text-gray-400">Items</p>
-                <p className="font-medium">{cat.total_items}</p>
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="bg-cream-dark rounded-lg p-2 text-center">
+                <p className="text-bronze">Items</p>
+                <p className="font-semibold text-mahogany">{cat.total_items}</p>
               </div>
-              <div>
-                <p className="text-gray-400">Sold</p>
-                <p className="font-medium">{cat.sold_items}</p>
+              <div className="bg-cream-dark rounded-lg p-2 text-center">
+                <p className="text-bronze">Sold</p>
+                <p className="font-semibold text-mahogany">{cat.sold_items}</p>
               </div>
-              <div>
-                <p className="text-gray-400">Margin</p>
-                <p className="font-medium">{cat.avg_profit_margin.toFixed(0)}%</p>
+              <div className="bg-cream-dark rounded-lg p-2 text-center">
+                <p className="text-bronze">Margin</p>
+                <p className="font-semibold text-mahogany">{cat.avg_profit_margin.toFixed(0)}%</p>
               </div>
-              <div>
-                <p className="text-gray-400">Days</p>
-                <p className="font-medium">{cat.avg_days_to_sell.toFixed(0)}</p>
+              <div className="bg-cream-dark rounded-lg p-2 text-center">
+                <p className="text-bronze">Days</p>
+                <p className="font-semibold text-mahogany">{cat.avg_days_to_sell.toFixed(0)}</p>
               </div>
             </div>
           </div>
@@ -206,30 +215,30 @@ function DaysTab() {
     queryFn: () => getBestShoppingDays().then(r => r.data),
   });
 
-  if (!days) return <div className="text-center py-8 text-gray-500">Loading...</div>;
+  if (!days) return <LoadingState />;
 
-  const maxProfit = Math.max(...days.map((d: any) => d.total_profit));
+  const maxProfit = Math.max(...days.map((d: any) => d.total_profit), 1);
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-500">Which days yield the best finds?</p>
+      <p className="text-sm text-bronze">Which days yield the best finds?</p>
       
       {days.map((day: any) => (
-        <div key={day.day} className="bg-white rounded-xl p-4 shadow">
+        <div key={day.day} className="card p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-medium">{day.day}</h3>
-            <span className={`font-bold ${day.total_profit > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+            <h3 className="font-semibold text-mahogany">{day.day}</h3>
+            <span className={`font-display font-bold ${day.total_profit > 0 ? 'text-sage' : 'text-bronze'}`}>
               ${day.total_profit.toLocaleString()}
             </span>
           </div>
-          <div className="flex items-center gap-3 text-sm text-gray-600">
+          <div className="flex items-center gap-4 text-xs text-bronze mb-2">
             <span>{day.items_purchased} items</span>
             <span>Avg margin: {day.avg_profit_margin.toFixed(0)}%</span>
           </div>
           {/* Progress bar */}
-          <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-2 bg-cream-dark rounded-full overflow-hidden">
             <div 
-              className="h-full bg-amber-500 rounded-full transition-all"
+              className="h-full bg-gradient-to-r from-gold to-gold-light rounded-full transition-all duration-500"
               style={{ width: maxProfit > 0 ? `${(day.total_profit / maxProfit) * 100}%` : '0%' }}
             />
           </div>
@@ -239,20 +248,32 @@ function DaysTab() {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string | number }) {
+function MetricCard({ label, value, color = 'text-mahogany' }: { label: string; value: string | number; color?: string }) {
   return (
-    <div className="bg-white rounded-xl p-4 shadow">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-bold">{value}</p>
+    <div className="card p-4">
+      <p className="text-xs text-bronze uppercase tracking-wide">{label}</p>
+      <p className={`text-2xl font-display font-bold ${color} mt-1`}>{value}</p>
     </div>
   );
 }
 
 function MetricRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className={`flex justify-between ${highlight ? 'pt-2 border-t font-semibold' : ''}`}>
-      <span className="text-gray-600">{label}</span>
-      <span className={highlight ? 'text-green-600' : ''}>{value}</span>
+    <div className={`flex justify-between items-center ${highlight ? 'pt-3 mt-1 border-t border-cream-dark' : ''}`}>
+      <span className="text-bronze">{label}</span>
+      <span className={`font-semibold ${highlight ? 'text-sage text-lg' : 'text-mahogany'}`}>{value}</span>
+    </div>
+  );
+}
+
+function LoadingState() {
+  return <div className="text-center py-12 text-bronze">Loading...</div>;
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="card p-8 text-center">
+      <p className="text-bronze">{message}</p>
     </div>
   );
 }

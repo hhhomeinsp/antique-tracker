@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Upload, Loader2, Sparkles, DollarSign, Tag } from 'lucide-react';
+import { Camera, Upload, Loader2, Sparkles, DollarSign, Tag, Info, Lightbulb, X } from 'lucide-react';
 import { identifyItem } from '../api/client';
 import type { AIIdentification } from '../api/client';
 import toast from 'react-hot-toast';
@@ -39,7 +39,6 @@ export default function Identify() {
   };
 
   const handleAddToInventory = () => {
-    // Navigate to add page with pre-filled data
     const params = new URLSearchParams({
       name: result?.item_name || '',
       category: result?.category || '',
@@ -54,28 +53,37 @@ export default function Identify() {
   };
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-800">🔍 AI Item Identifier</h2>
-      <p className="text-sm text-gray-500">
-        Take a photo and get instant identification, value estimate, and pricing suggestions.
-      </p>
+    <div className="space-y-5">
+      <div className="text-center">
+        <h2 className="text-2xl font-display font-semibold text-mahogany flex items-center justify-center gap-2">
+          <Sparkles className="text-gold" size={24} />
+          AI Identifier
+        </h2>
+        <p className="text-bronze text-sm mt-1">
+          Snap a photo for instant identification & valuation
+        </p>
+      </div>
 
       {/* Image capture */}
       {!image ? (
         <div className="grid grid-cols-2 gap-4">
           <button
             onClick={() => cameraInputRef.current?.click()}
-            className="bg-purple-600 text-white rounded-xl p-6 flex flex-col items-center justify-center gap-2 active:scale-95 transition"
+            className="card p-8 flex flex-col items-center justify-center gap-3 active:scale-95 transition-all"
           >
-            <Camera size={32} />
-            <span>Take Photo</span>
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-wine to-wine-light flex items-center justify-center shadow-lg">
+              <Camera size={32} className="text-white" />
+            </div>
+            <span className="font-semibold text-mahogany">Take Photo</span>
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="bg-gray-600 text-white rounded-xl p-6 flex flex-col items-center justify-center gap-2 active:scale-95 transition"
+            className="card p-8 flex flex-col items-center justify-center gap-3 active:scale-95 transition-all"
           >
-            <Upload size={32} />
-            <span>Upload</span>
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-bronze to-mahogany flex items-center justify-center shadow-lg">
+              <Upload size={32} className="text-white" />
+            </div>
+            <span className="font-semibold text-mahogany">Upload</span>
           </button>
           <input
             ref={cameraInputRef}
@@ -100,19 +108,19 @@ export default function Identify() {
             <img
               src={image}
               alt="Item"
-              className="w-full h-64 object-contain bg-gray-100 rounded-xl"
+              className="w-full h-64 object-contain bg-cream-dark rounded-2xl"
             />
             <button
               onClick={() => { setImage(null); setResult(null); }}
-              className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded-full text-sm"
+              className="absolute top-3 right-3 w-10 h-10 bg-wine text-white rounded-full flex items-center justify-center shadow-lg active:scale-95"
             >
-              Clear
+              <X size={20} />
             </button>
           </div>
 
           {/* Additional context */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-mahogany mb-2">
               Additional context (optional)
             </label>
             <input
@@ -120,7 +128,7 @@ export default function Identify() {
               value={context}
               onChange={(e) => setContext(e.target.value)}
               placeholder="e.g., Found at estate sale, has makers mark on bottom"
-              className="w-full p-3 border rounded-lg"
+              className="w-full p-4 border rounded-xl bg-white"
             />
           </div>
 
@@ -129,17 +137,17 @@ export default function Identify() {
             <button
               onClick={handleIdentify}
               disabled={loading}
-              className="w-full bg-purple-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full btn-primary flex items-center justify-center gap-3 py-4 disabled:opacity-50"
             >
               {loading ? (
                 <>
-                  <Loader2 className="animate-spin" size={20} />
-                  Analyzing...
+                  <Loader2 className="animate-spin" size={22} />
+                  Analyzing with AI...
                 </>
               ) : (
                 <>
-                  <Sparkles size={20} />
-                  Identify Item
+                  <Sparkles size={22} />
+                  Identify & Value Item
                 </>
               )}
             </button>
@@ -147,58 +155,72 @@ export default function Identify() {
 
           {/* Results */}
           {result && (
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-600 to-amber-600 text-white p-4">
-                <h3 className="text-lg font-bold">{result.item_name}</h3>
-                <p className="text-sm opacity-90">{result.era_period}</p>
+            <div className="card overflow-hidden">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-wine to-wine-light text-white p-5">
+                <h3 className="text-xl font-display font-semibold">{result.item_name}</h3>
+                <p className="text-white/80 text-sm mt-1">{result.era_period}</p>
+                <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
+                  result.confidence === 'high' ? 'bg-white/20' : 'bg-white/10'
+                }`}>
+                  {result.confidence} confidence
+                </span>
               </div>
               
-              <div className="p-4 space-y-4">
+              <div className="p-5 space-y-5">
                 {/* Value estimate */}
-                <div className="bg-green-50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-green-700 font-medium mb-1">
-                    <DollarSign size={18} />
+                <div className="bg-sage/10 rounded-xl p-4 border border-sage/20">
+                  <div className="flex items-center gap-2 text-sage font-semibold mb-2">
+                    <DollarSign size={20} />
                     Value Estimate
                   </div>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-3xl font-display font-bold text-sage">
                     ${result.estimated_value_low} - ${result.estimated_value_high}
                   </p>
-                  <p className="text-sm text-green-600 mt-1">
-                    <strong>Suggested price: ${result.suggested_price}</strong>
-                  </p>
+                  <div className="mt-3 pt-3 border-t border-sage/20">
+                    <p className="text-sm text-mahogany">
+                      <strong className="text-wine">Suggested price: ${result.suggested_price}</strong>
+                    </p>
+                  </div>
                 </div>
 
                 {/* Category */}
-                <div className="flex items-center gap-2 text-sm">
-                  <Tag size={16} className="text-gray-400" />
-                  <span className="capitalize">{result.category.replace('_', ' ')}</span>
-                  <span className="ml-auto px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">
-                    {result.confidence} confidence
-                  </span>
+                <div className="flex items-center gap-3 text-sm">
+                  <Tag size={18} className="text-bronze" />
+                  <span className="capitalize text-mahogany font-medium">{result.category.replace('_', ' ')}</span>
                 </div>
 
                 {/* Description */}
-                <div>
-                  <h4 className="font-medium text-gray-700 mb-1">Description</h4>
-                  <p className="text-sm text-gray-600">{result.description}</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-mahogany font-semibold">
+                    <Info size={18} className="text-wine" />
+                    Description
+                  </div>
+                  <p className="text-sm text-bronze leading-relaxed">{result.description}</p>
                 </div>
 
                 {/* Condition */}
-                <div>
-                  <h4 className="font-medium text-gray-700 mb-1">Condition Notes</h4>
-                  <p className="text-sm text-gray-600">{result.condition_notes}</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-mahogany font-semibold">
+                    <Info size={18} className="text-gold" />
+                    Condition Notes
+                  </div>
+                  <p className="text-sm text-bronze leading-relaxed">{result.condition_notes}</p>
                 </div>
 
                 {/* Selling tips */}
-                <div className="bg-amber-50 rounded-lg p-3">
-                  <h4 className="font-medium text-amber-700 mb-1">💡 Selling Tips</h4>
-                  <p className="text-sm text-amber-800">{result.selling_tips}</p>
+                <div className="bg-gold/10 rounded-xl p-4 border border-gold/20">
+                  <div className="flex items-center gap-2 text-gold-dark font-semibold mb-2">
+                    <Lightbulb size={18} />
+                    Selling Tips
+                  </div>
+                  <p className="text-sm text-mahogany leading-relaxed">{result.selling_tips}</p>
                 </div>
 
                 {/* Keywords */}
                 <div className="flex flex-wrap gap-2">
                   {result.keywords.map((kw, i) => (
-                    <span key={i} className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
+                    <span key={i} className="px-3 py-1 bg-cream-dark rounded-full text-xs text-bronze font-medium">
                       {kw}
                     </span>
                   ))}
@@ -207,7 +229,7 @@ export default function Identify() {
                 {/* Add to inventory button */}
                 <button
                   onClick={handleAddToInventory}
-                  className="w-full bg-amber-600 text-white py-3 rounded-lg font-semibold"
+                  className="w-full btn-secondary flex items-center justify-center gap-2"
                 >
                   Add to Inventory
                 </button>

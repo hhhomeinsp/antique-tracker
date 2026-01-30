@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Camera, Upload, Save, Loader2 } from 'lucide-react';
+import { Camera, Upload, Save, Loader2, X, PlusCircle, Sparkles } from 'lucide-react';
 import { getStores, getCategories, createItem } from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -29,7 +29,6 @@ export default function AddItem() {
     notes: '',
   });
 
-  // Load stores and categories
   const { data: stores } = useQuery({
     queryKey: ['stores'],
     queryFn: () => getStores().then(r => r.data),
@@ -40,7 +39,6 @@ export default function AddItem() {
     queryFn: () => getCategories().then(r => r.data),
   });
 
-  // Pre-fill from URL params (from AI identification)
   useEffect(() => {
     const name = searchParams.get('name');
     const category = searchParams.get('category');
@@ -109,42 +107,55 @@ export default function AddItem() {
     }
   };
 
-  return (
-    <div className="space-y-4 pb-4">
-      <h2 className="text-xl font-bold text-gray-800">➕ Add Item</h2>
+  const hasAIData = form.suggested_price || form.estimated_value_low;
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+  return (
+    <div className="space-y-5 pb-4">
+      <div className="text-center">
+        <h2 className="text-2xl font-display font-semibold text-mahogany flex items-center justify-center gap-2">
+          <PlusCircle className="text-wine" size={24} />
+          Add Item
+        </h2>
+        {hasAIData && (
+          <p className="text-sage text-sm mt-1 flex items-center justify-center gap-1">
+            <Sparkles size={14} />
+            AI-identified item
+          </p>
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Photo */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Photo</label>
+        <div className="card p-4">
+          <label className="block text-sm font-semibold text-mahogany mb-3">Photo</label>
           {form.photo ? (
             <div className="relative">
               <img
                 src={form.photo}
                 alt="Item"
-                className="w-full h-48 object-contain bg-gray-100 rounded-lg"
+                className="w-full h-48 object-contain bg-cream-dark rounded-xl"
               />
               <button
                 type="button"
                 onClick={() => setForm(prev => ({ ...prev, photo: '' }))}
-                className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-sm"
+                className="absolute top-2 right-2 w-8 h-8 bg-wine text-white rounded-full flex items-center justify-center shadow"
               >
-                Remove
+                <X size={16} />
               </button>
             </div>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex-1 bg-gray-100 py-4 rounded-lg flex items-center justify-center gap-2"
+                className="flex-1 bg-cream-dark py-4 rounded-xl flex items-center justify-center gap-2 text-mahogany font-medium active:scale-95 transition"
               >
                 <Camera size={20} /> Camera
               </button>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 bg-gray-100 py-4 rounded-lg flex items-center justify-center gap-2"
+                className="flex-1 bg-cream-dark py-4 rounded-xl flex items-center justify-center gap-2 text-mahogany font-medium active:scale-95 transition"
               >
                 <Upload size={20} /> Upload
               </button>
@@ -167,145 +178,155 @@ export default function AddItem() {
           )}
         </div>
 
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full p-3 border rounded-lg"
-            placeholder="e.g., Vintage Brass Candlesticks"
-            required
-          />
+        {/* Basic Info */}
+        <div className="card p-4 space-y-4">
+          <h3 className="font-semibold text-mahogany">Basic Info</h3>
+          
+          <div>
+            <label className="block text-sm font-medium text-bronze mb-1">Item Name *</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full p-3 border bg-white"
+              placeholder="e.g., Vintage Brass Candlesticks"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-bronze mb-1">Category</label>
+              <select
+                value={form.category}
+                onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
+                className="w-full p-3 border bg-white"
+              >
+                {categories?.map(cat => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-bronze mb-1">Condition</label>
+              <select
+                value={form.condition}
+                onChange={(e) => setForm(prev => ({ ...prev, condition: e.target.value }))}
+                className="w-full p-3 border bg-white"
+              >
+                <option value="excellent">Excellent</option>
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="poor">Poor</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-bronze mb-1">Description</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full p-3 border bg-white"
+              rows={2}
+              placeholder="Additional details..."
+            />
+          </div>
         </div>
 
-        {/* Category & Condition */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
-              className="w-full p-3 border rounded-lg bg-white"
-            >
-              {categories?.map(cat => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
-            <select
-              value={form.condition}
-              onChange={(e) => setForm(prev => ({ ...prev, condition: e.target.value }))}
-              className="w-full p-3 border rounded-lg bg-white"
-            >
-              <option value="excellent">Excellent</option>
-              <option value="good">Good</option>
-              <option value="fair">Fair</option>
-              <option value="poor">Poor</option>
-            </select>
-          </div>
-        </div>
+        {/* Purchase Info */}
+        <div className="card p-4 space-y-4">
+          <h3 className="font-semibold text-mahogany">Purchase Info</h3>
 
-        {/* Purchase Price & Date */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Price *</label>
-            <div className="relative">
-              <span className="absolute left-3 top-3 text-gray-400">$</span>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-bronze mb-1">Purchase Price *</label>
+              <div className="relative">
+                <span className="absolute left-3 top-3 text-bronze">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.purchase_price}
+                  onChange={(e) => setForm(prev => ({ ...prev, purchase_price: e.target.value }))}
+                  className="w-full p-3 pl-7 border bg-white"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-bronze mb-1">Purchase Date</label>
               <input
-                type="number"
-                step="0.01"
-                value={form.purchase_price}
-                onChange={(e) => setForm(prev => ({ ...prev, purchase_price: e.target.value }))}
-                className="w-full p-3 pl-7 border rounded-lg"
-                placeholder="0.00"
-                required
+                type="date"
+                value={form.purchase_date}
+                onChange={(e) => setForm(prev => ({ ...prev, purchase_date: e.target.value }))}
+                className="w-full p-3 border bg-white"
               />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Date</label>
-            <input
-              type="date"
-              value={form.purchase_date}
-              onChange={(e) => setForm(prev => ({ ...prev, purchase_date: e.target.value }))}
-              className="w-full p-3 border rounded-lg"
-            />
-          </div>
-        </div>
 
-        {/* Store */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Store</label>
-          <select
-            value={form.store_id}
-            onChange={(e) => setForm(prev => ({ ...prev, store_id: e.target.value }))}
-            className="w-full p-3 border rounded-lg bg-white"
-          >
-            <option value="">Select store...</option>
-            {stores?.map(store => (
-              <option key={store.id} value={store.id}>
-                {store.name} {store.city && `(${store.city})`}
-              </option>
-            ))}
-          </select>
+          <div>
+            <label className="block text-sm font-medium text-bronze mb-1">Store</label>
+            <select
+              value={form.store_id}
+              onChange={(e) => setForm(prev => ({ ...prev, store_id: e.target.value }))}
+              className="w-full p-3 border bg-white"
+            >
+              <option value="">Select store...</option>
+              {stores?.map(store => (
+                <option key={store.id} value={store.id}>
+                  {store.name} {store.city && `(${store.city})`}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Pricing */}
-        {(form.suggested_price || form.estimated_value_low) && (
-          <div className="bg-green-50 rounded-lg p-3">
-            <p className="text-sm font-medium text-green-700 mb-2">AI Suggested Pricing</p>
-            <div className="flex gap-4 text-sm">
-              {form.estimated_value_low && form.estimated_value_high && (
-                <span>Value: ${form.estimated_value_low} - ${form.estimated_value_high}</span>
-              )}
-              {form.suggested_price && (
-                <span className="font-semibold">Suggested: ${form.suggested_price}</span>
-              )}
+        <div className="card p-4 space-y-4">
+          <h3 className="font-semibold text-mahogany">Pricing</h3>
+
+          {hasAIData && (
+            <div className="bg-sage/10 rounded-xl p-3 border border-sage/20">
+              <p className="text-sm font-medium text-sage mb-2 flex items-center gap-1">
+                <Sparkles size={14} /> AI Suggested
+              </p>
+              <div className="flex gap-4 text-sm text-mahogany">
+                {form.estimated_value_low && form.estimated_value_high && (
+                  <span>Value: ${form.estimated_value_low} - ${form.estimated_value_high}</span>
+                )}
+                {form.suggested_price && (
+                  <span className="font-semibold text-wine">Suggested: ${form.suggested_price}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-bronze mb-1">Your Listed Price</label>
+            <div className="relative">
+              <span className="absolute left-3 top-3 text-bronze">$</span>
+              <input
+                type="number"
+                step="0.01"
+                value={form.listed_price}
+                onChange={(e) => setForm(prev => ({ ...prev, listed_price: e.target.value }))}
+                className="w-full p-3 pl-7 border bg-white"
+                placeholder="What you'll list it for"
+              />
             </div>
           </div>
-        )}
-
-        {/* Listed Price */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Your Listed Price</label>
-          <div className="relative">
-            <span className="absolute left-3 top-3 text-gray-400">$</span>
-            <input
-              type="number"
-              step="0.01"
-              value={form.listed_price}
-              onChange={(e) => setForm(prev => ({ ...prev, listed_price: e.target.value }))}
-              className="w-full p-3 pl-7 border rounded-lg"
-              placeholder="What you'll list it for"
-            />
-          </div>
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-            className="w-full p-3 border rounded-lg"
-            rows={2}
-            placeholder="Additional details..."
-          />
         </div>
 
         {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+        <div className="card p-4">
+          <label className="block text-sm font-semibold text-mahogany mb-2">Private Notes</label>
           <textarea
             value={form.notes}
             onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
-            className="w-full p-3 border rounded-lg"
+            className="w-full p-3 border bg-white"
             rows={2}
-            placeholder="Private notes..."
+            placeholder="Notes for yourself..."
           />
         </div>
 
@@ -313,7 +334,7 @@ export default function AddItem() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full bg-amber-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50"
         >
           {saving ? (
             <>

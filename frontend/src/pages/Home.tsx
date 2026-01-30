@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { PlusCircle, Camera, TrendingUp, Package } from 'lucide-react';
+import { PlusCircle, Sparkles, TrendingUp, Package, DollarSign, Clock } from 'lucide-react';
 import { getAnalyticsSummary, seedStores } from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -21,78 +21,84 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
+      {/* Welcome */}
+      <div className="text-center py-2">
+        <h2 className="text-2xl font-display font-semibold text-mahogany">Welcome Back</h2>
+        <p className="text-bronze text-sm mt-1">Track your treasures, maximize your profits</p>
+      </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4">
         <Link
           to="/add"
-          className="bg-amber-600 text-white rounded-xl p-4 flex flex-col items-center justify-center shadow-lg active:scale-95 transition"
+          className="card p-5 flex flex-col items-center justify-center gap-3 active:scale-95 transition-all group"
         >
-          <PlusCircle size={32} />
-          <span className="mt-2 font-medium">Add Item</span>
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-wine to-wine-light flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+            <PlusCircle size={28} className="text-white" />
+          </div>
+          <span className="font-semibold text-mahogany">Add Item</span>
         </Link>
         <Link
           to="/identify"
-          className="bg-purple-600 text-white rounded-xl p-4 flex flex-col items-center justify-center shadow-lg active:scale-95 transition"
+          className="card p-5 flex flex-col items-center justify-center gap-3 active:scale-95 transition-all group"
         >
-          <Camera size={32} />
-          <span className="mt-2 font-medium">AI Identify</span>
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-gold-light flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+            <Sparkles size={28} className="text-white" />
+          </div>
+          <span className="font-semibold text-mahogany">AI Identify</span>
         </Link>
       </div>
 
       {/* Summary Cards */}
       {isLoading ? (
-        <div className="text-center py-8 text-gray-500">Loading...</div>
+        <div className="text-center py-8 text-bronze">Loading...</div>
       ) : summary ? (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-700">Last 30 Days</h2>
+          <h3 className="text-lg font-display font-semibold text-mahogany flex items-center gap-2">
+            <Clock size={18} className="text-wine" />
+            Last 30 Days
+          </h3>
           
           <div className="grid grid-cols-2 gap-3">
             <StatCard
-              icon={<Package className="text-blue-500" />}
+              icon={<Package className="text-wine" size={20} />}
               label="In Inventory"
               value={summary.unsold_items}
               subtext={`$${summary.current_inventory_value.toLocaleString()} invested`}
             />
             <StatCard
-              icon={<TrendingUp className="text-green-500" />}
+              icon={<TrendingUp className="text-sage" size={20} />}
               label="Items Sold"
               value={summary.recent_sales.count}
               subtext={`$${summary.recent_sales.profit.toLocaleString()} profit`}
+              highlight
             />
           </div>
 
           {summary.recent_sales.count > 0 && (
-            <div className="bg-white rounded-xl p-4 shadow">
-              <h3 className="font-medium text-gray-700 mb-2">Sales Performance</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Revenue</p>
-                  <p className="text-lg font-semibold text-green-600">
-                    ${summary.recent_sales.revenue.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Avg Margin</p>
-                  <p className="text-lg font-semibold text-amber-600">
-                    {summary.recent_sales.avg_profit_margin.toFixed(0)}%
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Avg Days to Sell</p>
-                  <p className="text-lg font-semibold">
-                    {summary.recent_sales.avg_days_to_sell.toFixed(0)} days
-                  </p>
-                </div>
+            <div className="card p-5">
+              <h4 className="font-display font-semibold text-mahogany mb-4 flex items-center gap-2">
+                <DollarSign size={18} className="text-gold" />
+                Sales Performance
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <MetricItem label="Revenue" value={`$${summary.recent_sales.revenue.toLocaleString()}`} color="text-sage" />
+                <MetricItem label="Avg Margin" value={`${summary.recent_sales.avg_profit_margin.toFixed(0)}%`} color="text-gold-dark" />
+                <MetricItem label="Avg Days to Sell" value={`${summary.recent_sales.avg_days_to_sell.toFixed(0)} days`} />
+                <MetricItem label="Total Profit" value={`$${summary.recent_sales.profit.toLocaleString()}`} color="text-wine" />
               </div>
             </div>
           )}
         </div>
       ) : (
-        <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">No data yet. Start by adding items!</p>
+        <div className="card p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cream-dark flex items-center justify-center">
+            <Package size={32} className="text-bronze" />
+          </div>
+          <p className="text-bronze mb-4">No data yet. Start by adding items!</p>
           <button
             onClick={handleSeedStores}
-            className="text-amber-600 underline"
+            className="text-wine underline font-medium hover:text-wine-light"
           >
             Load Brevard County Thrift Stores
           </button>
@@ -102,20 +108,30 @@ export default function Home() {
   );
 }
 
-function StatCard({ icon, label, value, subtext }: { 
+function StatCard({ icon, label, value, subtext, highlight }: { 
   icon: React.ReactNode; 
   label: string; 
   value: number | string;
   subtext?: string;
+  highlight?: boolean;
 }) {
   return (
-    <div className="bg-white rounded-xl p-4 shadow">
-      <div className="flex items-center gap-2 mb-1">
+    <div className={`card p-4 ${highlight ? 'ring-2 ring-sage/30' : ''}`}>
+      <div className="flex items-center gap-2 mb-2">
         {icon}
-        <span className="text-sm text-gray-500">{label}</span>
+        <span className="text-sm text-bronze font-medium">{label}</span>
       </div>
-      <p className="text-2xl font-bold">{value}</p>
-      {subtext && <p className="text-xs text-gray-400">{subtext}</p>}
+      <p className="text-3xl font-display font-bold text-mahogany">{value}</p>
+      {subtext && <p className="text-xs text-bronze mt-1">{subtext}</p>}
+    </div>
+  );
+}
+
+function MetricItem({ label, value, color = 'text-mahogany' }: { label: string; value: string; color?: string }) {
+  return (
+    <div>
+      <p className="text-xs text-bronze uppercase tracking-wide">{label}</p>
+      <p className={`text-lg font-semibold ${color}`}>{value}</p>
     </div>
   );
 }

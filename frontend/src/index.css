@@ -3,10 +3,34 @@
 @source "../index.html";
 @source "./**/*.{js,ts,jsx,tsx}";
 
+/* Google Fonts - Playfair Display for vintage headers */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* Custom color theme */
+@theme {
+  --color-cream: #FDF8F3;
+  --color-cream-dark: #F5EDE4;
+  --color-wine: #722F37;
+  --color-wine-light: #8B3D46;
+  --color-wine-dark: #5C262D;
+  --color-gold: #C4A052;
+  --color-gold-light: #D4B76A;
+  --color-gold-dark: #A68A3C;
+  --color-sage: #6B8E6B;
+  --color-sage-light: #8FAF8F;
+  --color-mahogany: #4A2C2A;
+  --color-bronze: #8B7355;
+}
+
 /* Mobile-first base styles */
 body {
-  @apply bg-gray-50 text-gray-900 min-h-screen;
+  @apply bg-cream text-mahogany min-h-screen;
+  font-family: 'Inter', system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Playfair Display', Georgia, serif;
 }
 
 /* PWA safe area handling */
@@ -16,4 +40,25 @@ body {
 
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Custom card style */
+.card {
+  @apply bg-white rounded-2xl shadow-md border border-cream-dark;
+}
+
+/* Gradient buttons */
+.btn-primary {
+  @apply bg-gradient-to-r from-wine to-wine-light text-white font-semibold py-3 px-6 rounded-xl shadow-lg;
+  @apply active:scale-95 transition-all duration-150;
+}
+
+.btn-secondary {
+  @apply bg-gradient-to-r from-gold to-gold-light text-mahogany font-semibold py-3 px-6 rounded-xl shadow-lg;
+  @apply active:scale-95 transition-all duration-150;
+}
+
+/* Input styling */
+input, select, textarea {
+  @apply border-cream-dark focus:border-gold focus:ring-2 focus:ring-gold/20 rounded-xl;
 }

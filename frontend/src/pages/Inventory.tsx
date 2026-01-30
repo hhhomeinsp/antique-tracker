@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DollarSign, Trash2 } from 'lucide-react';
+import { DollarSign, Trash2, Package, X, Tag, Calendar } from 'lucide-react';
 import { getItems, markSold, deleteItem } from '../api/client';
 import type { Item } from '../api/client';
 import toast from 'react-hot-toast';
@@ -45,20 +45,27 @@ export default function Inventory() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-800">📦 Inventory</h2>
-        <span className="text-sm text-gray-500">{items?.length || 0} items</span>
+        <h2 className="text-2xl font-display font-semibold text-mahogany flex items-center gap-2">
+          <Package className="text-wine" size={24} />
+          Inventory
+        </h2>
+        <span className="text-sm text-bronze bg-cream-dark px-3 py-1 rounded-full">
+          {items?.length || 0} items
+        </span>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex bg-gray-100 rounded-lg p-1">
+      <div className="flex bg-cream-dark rounded-xl p-1">
         {(['unsold', 'sold', 'all'] as const).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition ${
-              filter === f ? 'bg-white shadow text-amber-700' : 'text-gray-600'
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              filter === f 
+                ? 'bg-white shadow text-wine' 
+                : 'text-bronze hover:text-mahogany'
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -68,67 +75,79 @@ export default function Inventory() {
 
       {/* Items list */}
       {isLoading ? (
-        <div className="text-center py-8 text-gray-500">Loading...</div>
+        <div className="text-center py-12 text-bronze">Loading...</div>
       ) : items?.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No items found. Start by adding some!
+        <div className="card p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cream-dark flex items-center justify-center">
+            <Package size={32} className="text-bronze" />
+          </div>
+          <p className="text-bronze">No items found. Start by adding some!</p>
         </div>
       ) : (
         <div className="space-y-3">
           {items?.map(item => (
-            <div
-              key={item.id}
-              className="bg-white rounded-xl shadow overflow-hidden"
-            >
+            <div key={item.id} className="card overflow-hidden">
               <div className="flex">
                 {/* Photo */}
-                {item.photo && (
+                {item.photo ? (
                   <img
                     src={item.photo}
                     alt={item.name}
-                    className="w-24 h-24 object-cover flex-shrink-0"
+                    className="w-28 h-28 object-cover flex-shrink-0"
                   />
+                ) : (
+                  <div className="w-28 h-28 bg-cream-dark flex items-center justify-center flex-shrink-0">
+                    <Package size={32} className="text-bronze/50" />
+                  </div>
                 )}
                 
                 {/* Details */}
-                <div className="flex-1 p-3">
-                  <h3 className="font-medium text-gray-800 line-clamp-1">{item.name}</h3>
-                  <p className="text-xs text-gray-400 capitalize">
+                <div className="flex-1 p-3 min-w-0">
+                  <h3 className="font-semibold text-mahogany line-clamp-1">{item.name}</h3>
+                  <p className="text-xs text-bronze capitalize flex items-center gap-1 mt-0.5">
+                    <Tag size={12} />
                     {item.category.replace('_', ' ')}
                   </p>
                   
-                  <div className="flex items-center gap-3 mt-2 text-sm">
-                    <span className="text-gray-600">
-                      Paid: <strong>${item.purchase_price}</strong>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm">
+                    <span className="text-bronze">
+                      Paid: <strong className="text-mahogany">${item.purchase_price}</strong>
                     </span>
                     {item.is_sold ? (
-                      <span className="text-green-600">
-                        Sold: <strong>${item.sale_price}</strong>
+                      <span className="text-sage font-medium">
+                        Sold: ${item.sale_price}
                         {item.profit !== undefined && (
-                          <span className="ml-1">
+                          <span className="ml-1 text-xs">
                             (+${item.profit.toFixed(0)})
                           </span>
                         )}
                       </span>
                     ) : item.listed_price ? (
-                      <span className="text-amber-600">
+                      <span className="text-gold-dark">
                         Listed: ${item.listed_price}
                       </span>
                     ) : null}
                   </div>
+                  
+                  {item.purchase_date && (
+                    <p className="text-xs text-bronze/70 mt-1 flex items-center gap-1">
+                      <Calendar size={11} />
+                      {new Date(item.purchase_date).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col justify-center p-2 gap-1">
+                <div className="flex flex-col justify-center p-2 gap-2">
                   {!item.is_sold && (
                     <button
                       onClick={() => {
                         setSelectedItem(item);
                         setSalePrice(item.listed_price?.toString() || item.suggested_price?.toString() || '');
                       }}
-                      className="p-2 bg-green-100 text-green-700 rounded-lg"
+                      className="w-10 h-10 bg-sage/10 text-sage rounded-xl flex items-center justify-center active:scale-95"
                     >
-                      <DollarSign size={18} />
+                      <DollarSign size={20} />
                     </button>
                   )}
                   <button
@@ -137,9 +156,9 @@ export default function Inventory() {
                         deleteMutation.mutate(item.id);
                       }
                     }}
-                    className="p-2 bg-red-100 text-red-700 rounded-lg"
+                    className="w-10 h-10 bg-wine/10 text-wine rounded-xl flex items-center justify-center active:scale-95"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={20} />
                   </button>
                 </div>
               </div>
@@ -150,49 +169,63 @@ export default function Inventory() {
 
       {/* Sell modal */}
       {selectedItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
-          <div className="bg-white w-full rounded-t-2xl p-4 space-y-4 safe-area-bottom">
-            <h3 className="text-lg font-bold">Mark as Sold</h3>
-            <p className="text-gray-600">{selectedItem.name}</p>
+        <div className="fixed inset-0 bg-mahogany/50 backdrop-blur-sm flex items-end z-50">
+          <div className="bg-white w-full rounded-t-3xl p-5 space-y-4 safe-area-bottom shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-display font-semibold text-mahogany">Mark as Sold</h3>
+              <button 
+                onClick={() => { setSelectedItem(null); setSalePrice(''); }}
+                className="w-10 h-10 bg-cream-dark rounded-full flex items-center justify-center"
+              >
+                <X size={20} className="text-bronze" />
+              </button>
+            </div>
+            
+            <p className="text-bronze">{selectedItem.name}</p>
+            <p className="text-sm text-bronze/70">Purchased for ${selectedItem.purchase_price}</p>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-mahogany mb-2">
                 Sale Price
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-400">$</span>
+                <span className="absolute left-4 top-4 text-bronze text-lg">$</span>
                 <input
                   type="number"
                   step="0.01"
                   value={salePrice}
                   onChange={(e) => setSalePrice(e.target.value)}
-                  className="w-full p-3 pl-7 border rounded-lg text-lg"
+                  className="w-full p-4 pl-9 border-2 border-cream-dark rounded-xl text-xl font-semibold focus:border-sage"
                   placeholder="0.00"
                   autoFocus
                 />
               </div>
               {salePrice && selectedItem.purchase_price && (
-                <p className="text-sm mt-2">
-                  Profit: <span className={parseFloat(salePrice) > selectedItem.purchase_price ? 'text-green-600' : 'text-red-600'}>
-                    ${(parseFloat(salePrice) - selectedItem.purchase_price).toFixed(2)}
-                  </span>
-                  {' '}
-                  ({((parseFloat(salePrice) - selectedItem.purchase_price) / selectedItem.purchase_price * 100).toFixed(0)}% margin)
-                </p>
+                <div className="mt-3 p-3 bg-cream-dark rounded-xl">
+                  <p className="text-sm">
+                    Profit:{' '}
+                    <span className={`font-semibold ${parseFloat(salePrice) > selectedItem.purchase_price ? 'text-sage' : 'text-wine'}`}>
+                      ${(parseFloat(salePrice) - selectedItem.purchase_price).toFixed(2)}
+                    </span>
+                    <span className="text-bronze ml-2">
+                      ({((parseFloat(salePrice) - selectedItem.purchase_price) / selectedItem.purchase_price * 100).toFixed(0)}% margin)
+                    </span>
+                  </p>
+                </div>
               )}
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={() => { setSelectedItem(null); setSalePrice(''); }}
-                className="flex-1 py-3 border rounded-lg font-medium"
+                className="flex-1 py-4 border-2 border-cream-dark rounded-xl font-semibold text-bronze"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSell}
                 disabled={!salePrice || sellMutation.isPending}
-                className="flex-1 py-3 bg-green-600 text-white rounded-lg font-medium disabled:opacity-50"
+                className="flex-1 btn-primary disabled:opacity-50"
               >
                 {sellMutation.isPending ? 'Saving...' : 'Confirm Sale'}
               </button>
