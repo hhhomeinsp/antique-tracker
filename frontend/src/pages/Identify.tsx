@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Upload, Loader2, Sparkles, DollarSign, Tag, Clock } from 'lucide-react';
-import { identifyItem, AIIdentification } from '../api/client';
+import { Camera, Upload, Loader2, Sparkles, DollarSign, Tag } from 'lucide-react';
+import { identifyItem } from '../api/client';
+import type { AIIdentification } from '../api/client';
 import toast from 'react-hot-toast';
 
 export default function Identify() {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Store, Tag, Calendar, TrendingUp } from 'lucide-react';
+import { Store, Tag, Calendar, TrendingUp } from 'lucide-react';
 import { 
   getAnalyticsSummary, 
   getAnalyticsByStore, 

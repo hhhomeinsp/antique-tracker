@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Package, DollarSign, Check, Trash2, Filter } from 'lucide-react';
-import { getItems, markSold, deleteItem, Item } from '../api/client';
+import { DollarSign, Trash2 } from 'lucide-react';
+import { getItems, markSold, deleteItem } from '../api/client';
+import type { Item } from '../api/client';
 import toast from 'react-hot-toast';
 
 export default function Inventory() {
