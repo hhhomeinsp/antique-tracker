@@ -93,7 +93,7 @@ async def identify_item(request: IdentifyRequest):
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "gpt-4o",
+                    "model": "gpt-4.1-mini",
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {
