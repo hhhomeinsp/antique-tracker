@@ -1,0 +1,103 @@
+"""Store API endpoints"""
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from typing import List, Optional
+from pydantic import BaseModel
+from datetime import datetime
+
+from app.core.database import get_db
+from app.models.store import Store
+
+router = APIRouter()
+
+# Pydantic schemas
+class StoreCreate(BaseModel):
+    name: str
+    address: Optional[str] = None
+    city: Optional[str] = None
+    notes: Optional[str] = None
+
+class StoreResponse(BaseModel):
+    id: int
+    name: str
+    address: Optional[str]
+    city: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Brevard County thrift stores
+BREVARD_STORES = [
+    {"name": "Goodwill - Melbourne", "address": "1455 N Harbor City Blvd", "city": "Melbourne"},
+    {"name": "Goodwill - Palm Bay", "address": "1140 Malabar Rd SE", "city": "Palm Bay"},
+    {"name": "Goodwill - Titusville", "address": "2835 Garden St", "city": "Titusville"},
+    {"name": "Goodwill - Merritt Island", "address": "295 E Merritt Island Cswy", "city": "Merritt Island"},
+    {"name": "Goodwill - Rockledge", "address": "3830 Murrell Rd", "city": "Rockledge"},
+    {"name": "Salvation Army - Melbourne", "address": "4135 W New Haven Ave", "city": "Melbourne"},
+    {"name": "Salvation Army - Cocoa", "address": "1275 Dixon Blvd", "city": "Cocoa"},
+    {"name": "SPCA of Brevard Thrift Store - Titusville", "address": "4220 S Washington Ave", "city": "Titusville"},
+    {"name": "SPCA of Brevard Thrift Store - Melbourne", "address": "510 E Hibiscus Blvd", "city": "Melbourne"},
+    {"name": "Community Thrift", "address": "2425 N Courtenay Pkwy", "city": "Merritt Island"},
+    {"name": "Molly Mutt III Thrift Shop", "address": "5575 N Atlantic Ave", "city": "Cocoa Beach"},
+    {"name": "Daily Thrift", "address": "3369 Suntree Blvd", "city": "Melbourne"},
+    {"name": "Village Thrift", "address": "2275 Palm Bay Rd NE", "city": "Palm Bay"},
+    {"name": "Patriots & Paws Thrift Store", "address": "1275 N Courtenay Pkwy", "city": "Merritt Island"},
+    {"name": "Brevard Humane Society Thrift", "address": "750 W New Haven Ave", "city": "Melbourne"},
+    {"name": "The Shabby Loft", "address": "1500 S Wickham Rd", "city": "West Melbourne"},
+    {"name": "The Astronaut's Wife", "address": "208 Brevard Ave", "city": "Cocoa Village"},
+    {"name": "Drifthouse", "address": "211 Brevard Ave", "city": "Cocoa Village"},
+    {"name": "North Brevard Sharing Center", "address": "4475 S Hopkins Ave", "city": "Titusville"},
+    {"name": "Women's Center Upscale Resale", "address": "750 Cone Rd", "city": "Merritt Island"},
+    {"name": "Shop of the Gulls", "address": "155 S Atlantic Ave", "city": "Cocoa Beach"},
+    {"name": "Beachside Retro & Records", "address": "318 S Atlantic Ave", "city": "Cocoa Beach"},
+    {"name": "Home to Home Consignment", "address": "665 N Courtenay Pkwy", "city": "Merritt Island"},
+    {"name": "A+ Thrift Shop", "address": "1755 E Merritt Island Cswy", "city": "Merritt Island"},
+]
+
+@router.get("/", response_model=List[StoreResponse])
+def list_stores(db: Session = Depends(get_db)):
+    """Get all stores"""
+    return db.query(Store).order_by(Store.name).all()
+
+@router.post("/", response_model=StoreResponse)
+def create_store(store: StoreCreate, db: Session = Depends(get_db)):
+    """Create a new store"""
+    db_store = Store(**store.model_dump())
+    db.add(db_store)
+    db.commit()
+    db.refresh(db_store)
+    return db_store
+
+@router.post("/seed-brevard")
+def seed_brevard_stores(db: Session = Depends(get_db)):
+    """Seed database with Brevard County thrift stores"""
+    added = 0
+    for store_data in BREVARD_STORES:
+        # Check if already exists
+        existing = db.query(Store).filter(Store.name == store_data["name"]).first()
+        if not existing:
+            db_store = Store(**store_data)
+            db.add(db_store)
+            added += 1
+    db.commit()
+    return {"message": f"Added {added} stores", "total": len(BREVARD_STORES)}
+
+@router.get("/{store_id}", response_model=StoreResponse)
+def get_store(store_id: int, db: Session = Depends(get_db)):
+    """Get a specific store"""
+    store = db.query(Store).filter(Store.id == store_id).first()
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    return store
+
+@router.delete("/{store_id}")
+def delete_store(store_id: int, db: Session = Depends(get_db)):
+    """Delete a store"""
+    store = db.query(Store).filter(Store.id == store_id).first()
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    db.delete(store)
+    db.commit()
+    return {"message": "Store deleted"}
