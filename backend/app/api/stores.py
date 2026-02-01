@@ -97,7 +97,7 @@ def create_store(store: StoreCreate, db: Session = Depends(get_db)):
     db.refresh(db_store)
     return db_store
 
-@router.post("/seed-brevard")
+@router.api_route("/seed-brevard", methods=["GET", "POST"])
 def seed_brevard_stores(db: Session = Depends(get_db)):
     """Seed database with default stores (online + Brevard County)"""
     added = 0
