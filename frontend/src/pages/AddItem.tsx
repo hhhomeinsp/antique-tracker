@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Camera, Upload, Save, Loader2, X, PlusCircle, Sparkles, Wand2 } from 'lucide-react';
-import { getStores, getCategories, createItem, identifyItem } from '../api/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Camera, Upload, Save, Loader2, X, PlusCircle, Sparkles, Wand2, Plus, Store } from 'lucide-react';
+import { getStores, getCategories, createItem, identifyItem, createStore, seedStores } from '../api/client';
 import toast from 'react-hot-toast';
 
 export default function AddItem() {
@@ -10,9 +10,14 @@ export default function AddItem() {
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   
   const [saving, setSaving] = useState(false);
   const [identifying, setIdentifying] = useState(false);
+  const [showAddStore, setShowAddStore] = useState(false);
+  const [newStoreName, setNewStoreName] = useState('');
+  const [newStoreCity, setNewStoreCity] = useState('');
+  const [addingStore, setAddingStore] = useState(false);
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -32,8 +37,38 @@ export default function AddItem() {
 
   const { data: stores } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => getStores().then(r => r.data),
+    queryFn: async () => {
+      const res = await getStores();
+      // Auto-seed if no stores exist
+      if (res.data.length === 0) {
+        await seedStores();
+        const refreshed = await getStores();
+        return refreshed.data;
+      }
+      return res.data;
+    },
   });
+
+  const handleAddStore = async () => {
+    if (!newStoreName.trim()) {
+      toast.error('Please enter a store name');
+      return;
+    }
+    setAddingStore(true);
+    try {
+      const res = await createStore({ name: newStoreName.trim(), city: newStoreCity.trim() || undefined });
+      queryClient.invalidateQueries({ queryKey: ['stores'] });
+      setForm(prev => ({ ...prev, store_id: res.data.id.toString() }));
+      setShowAddStore(false);
+      setNewStoreName('');
+      setNewStoreCity('');
+      toast.success('Store added!');
+    } catch {
+      toast.error('Failed to add store');
+    } finally {
+      setAddingStore(false);
+    }
+  };
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -323,18 +358,28 @@ export default function AddItem() {
 
           <div>
             <label className="block text-sm font-medium text-bronze mb-1">Store</label>
-            <select
-              value={form.store_id}
-              onChange={(e) => setForm(prev => ({ ...prev, store_id: e.target.value }))}
-              className="w-full p-3 border bg-white"
-            >
-              <option value="">Select store...</option>
-              {stores?.map(store => (
-                <option key={store.id} value={store.id}>
-                  {store.name} {store.city && `(${store.city})`}
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <select
+                value={form.store_id}
+                onChange={(e) => setForm(prev => ({ ...prev, store_id: e.target.value }))}
+                className="flex-1 p-3 border bg-white"
+              >
+                <option value="">Select store...</option>
+                {stores?.map(store => (
+                  <option key={store.id} value={store.id}>
+                    {store.name} {store.city && `(${store.city})`}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowAddStore(true)}
+                className="px-3 bg-cream-dark rounded-xl flex items-center justify-center text-mahogany hover:bg-gold/20 transition"
+                title="Add new store"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -405,6 +450,65 @@ export default function AddItem() {
           )}
         </button>
       </form>
+
+      {/* Add Store Modal */}
+      {showAddStore && (
+        <div className="fixed inset-0 bg-mahogany/50 backdrop-blur-sm flex items-end z-50">
+          <div className="bg-white w-full rounded-t-3xl p-5 space-y-4 safe-area-bottom shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-display font-semibold text-mahogany flex items-center gap-2">
+                <Store size={20} className="text-wine" />
+                Add New Store
+              </h3>
+              <button 
+                onClick={() => { setShowAddStore(false); setNewStoreName(''); setNewStoreCity(''); }}
+                className="w-10 h-10 bg-cream-dark rounded-full flex items-center justify-center"
+              >
+                <X size={20} className="text-bronze" />
+              </button>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-mahogany mb-2">Store Name *</label>
+              <input
+                type="text"
+                value={newStoreName}
+                onChange={(e) => setNewStoreName(e.target.value)}
+                className="w-full p-3 border rounded-xl"
+                placeholder="e.g., My Favorite Thrift Store"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-mahogany mb-2">City (optional)</label>
+              <input
+                type="text"
+                value={newStoreCity}
+                onChange={(e) => setNewStoreCity(e.target.value)}
+                className="w-full p-3 border rounded-xl"
+                placeholder="e.g., Melbourne"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => { setShowAddStore(false); setNewStoreName(''); setNewStoreCity(''); }}
+                className="flex-1 py-4 border-2 border-cream-dark rounded-xl font-semibold text-bronze"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddStore}
+                disabled={addingStore || !newStoreName.trim()}
+                className="flex-1 btn-primary disabled:opacity-50"
+              >
+                {addingStore ? 'Adding...' : 'Add Store'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

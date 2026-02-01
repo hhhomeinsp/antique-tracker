@@ -63,6 +63,7 @@ export interface Category {
 
 // API functions
 export const getStores = () => api.get<Store[]>('/stores/');
+export const createStore = (store: { name: string; city?: string }) => api.post<Store>('/stores/', store);
 export const seedStores = () => api.post('/stores/seed-brevard');
 export const getCategories = () => api.get<Category[]>('/items/categories');
 

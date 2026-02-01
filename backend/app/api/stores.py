@@ -28,6 +28,23 @@ class StoreResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# Online Marketplaces
+ONLINE_MARKETPLACES = [
+    {"name": "Facebook Marketplace", "city": "Online"},
+    {"name": "eBay", "city": "Online"},
+    {"name": "Craigslist", "city": "Online"},
+    {"name": "OfferUp", "city": "Online"},
+    {"name": "Mercari", "city": "Online"},
+    {"name": "Etsy", "city": "Online"},
+    {"name": "Poshmark", "city": "Online"},
+    {"name": "Nextdoor", "city": "Online"},
+    {"name": "Estate Sale", "city": "Various"},
+    {"name": "Garage Sale", "city": "Various"},
+    {"name": "Auction", "city": "Various"},
+    {"name": "Flea Market", "city": "Various"},
+    {"name": "Antique Mall", "city": "Various"},
+]
+
 # Brevard County thrift stores
 BREVARD_STORES = [
     {"name": "Goodwill - Melbourne", "address": "1455 N Harbor City Blvd", "city": "Melbourne"},
@@ -35,8 +52,10 @@ BREVARD_STORES = [
     {"name": "Goodwill - Titusville", "address": "2835 Garden St", "city": "Titusville"},
     {"name": "Goodwill - Merritt Island", "address": "295 E Merritt Island Cswy", "city": "Merritt Island"},
     {"name": "Goodwill - Rockledge", "address": "3830 Murrell Rd", "city": "Rockledge"},
+    {"name": "Goodwill - Cocoa", "address": "900 Dixon Blvd", "city": "Cocoa"},
     {"name": "Salvation Army - Melbourne", "address": "4135 W New Haven Ave", "city": "Melbourne"},
     {"name": "Salvation Army - Cocoa", "address": "1275 Dixon Blvd", "city": "Cocoa"},
+    {"name": "Salvation Army - Titusville", "address": "4245 S Hopkins Ave", "city": "Titusville"},
     {"name": "SPCA of Brevard Thrift Store - Titusville", "address": "4220 S Washington Ave", "city": "Titusville"},
     {"name": "SPCA of Brevard Thrift Store - Melbourne", "address": "510 E Hibiscus Blvd", "city": "Melbourne"},
     {"name": "Community Thrift", "address": "2425 N Courtenay Pkwy", "city": "Merritt Island"},
@@ -54,7 +73,15 @@ BREVARD_STORES = [
     {"name": "Beachside Retro & Records", "address": "318 S Atlantic Ave", "city": "Cocoa Beach"},
     {"name": "Home to Home Consignment", "address": "665 N Courtenay Pkwy", "city": "Merritt Island"},
     {"name": "A+ Thrift Shop", "address": "1755 E Merritt Island Cswy", "city": "Merritt Island"},
+    {"name": "Second Time Around", "address": "903 Cheney Hwy", "city": "Titusville"},
+    {"name": "Habitat ReStore - Melbourne", "address": "4600 Lipscomb St NE", "city": "Palm Bay"},
+    {"name": "Habitat ReStore - Rockledge", "address": "1751 Dixon Blvd", "city": "Rockledge"},
+    {"name": "Angels Attic Thrift", "address": "2345 N Wickham Rd", "city": "Melbourne"},
+    {"name": "Encore Resale", "address": "1120 N Harbor City Blvd", "city": "Melbourne"},
 ]
+
+# All default stores
+DEFAULT_STORES = ONLINE_MARKETPLACES + BREVARD_STORES
 
 @router.get("/", response_model=List[StoreResponse])
 def list_stores(db: Session = Depends(get_db)):
@@ -72,9 +99,9 @@ def create_store(store: StoreCreate, db: Session = Depends(get_db)):
 
 @router.post("/seed-brevard")
 def seed_brevard_stores(db: Session = Depends(get_db)):
-    """Seed database with Brevard County thrift stores"""
+    """Seed database with default stores (online + Brevard County)"""
     added = 0
-    for store_data in BREVARD_STORES:
+    for store_data in DEFAULT_STORES:
         # Check if already exists
         existing = db.query(Store).filter(Store.name == store_data["name"]).first()
         if not existing:
@@ -82,7 +109,7 @@ def seed_brevard_stores(db: Session = Depends(get_db)):
             db.add(db_store)
             added += 1
     db.commit()
-    return {"message": f"Added {added} stores", "total": len(BREVARD_STORES)}
+    return {"message": f"Added {added} stores", "total": len(DEFAULT_STORES)}
 
 @router.get("/{store_id}", response_model=StoreResponse)
 def get_store(store_id: int, db: Session = Depends(get_db)):
