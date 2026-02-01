@@ -20,10 +20,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS
+# CORS - Allow frontend origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this
+    allow_origins=[
+        "https://antique-tracker.onrender.com",
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
