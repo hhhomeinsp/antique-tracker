@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Camera, Upload, Save, Loader2, X, PlusCircle, Sparkles } from 'lucide-react';
-import { getStores, getCategories, createItem } from '../api/client';
+import { Camera, Upload, Save, Loader2, X, PlusCircle, Sparkles, Wand2 } from 'lucide-react';
+import { getStores, getCategories, createItem, identifyItem } from '../api/client';
 import toast from 'react-hot-toast';
 
 export default function AddItem() {
@@ -12,6 +12,7 @@ export default function AddItem() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   
   const [saving, setSaving] = useState(false);
+  const [identifying, setIdentifying] = useState(false);
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -72,6 +73,37 @@ export default function AddItem() {
     reader.readAsDataURL(file);
   };
 
+  const handleAIIdentify = async () => {
+    if (!form.photo) {
+      toast.error('Please add a photo first');
+      return;
+    }
+
+    setIdentifying(true);
+    try {
+      const res = await identifyItem(form.photo);
+      const data = res.data;
+      
+      setForm(prev => ({
+        ...prev,
+        name: data.item_name || prev.name,
+        description: data.description || prev.description,
+        category: data.category || prev.category,
+        suggested_price: data.suggested_price?.toString() || prev.suggested_price,
+        estimated_value_low: data.estimated_value_low?.toString() || prev.estimated_value_low,
+        estimated_value_high: data.estimated_value_high?.toString() || prev.estimated_value_high,
+        ai_identification: JSON.stringify(data),
+        notes: prev.notes ? prev.notes + '\n\n' + data.selling_tips : data.selling_tips,
+      }));
+      
+      toast.success('Item identified! Fields auto-filled.');
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Failed to identify item');
+    } finally {
+      setIdentifying(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -129,19 +161,43 @@ export default function AddItem() {
         <div className="card p-4">
           <label className="block text-sm font-semibold text-mahogany mb-3">Photo</label>
           {form.photo ? (
-            <div className="relative">
-              <img
-                src={form.photo}
-                alt="Item"
-                className="w-full h-48 object-contain bg-cream-dark rounded-xl"
-              />
-              <button
-                type="button"
-                onClick={() => setForm(prev => ({ ...prev, photo: '' }))}
-                className="absolute top-2 right-2 w-8 h-8 bg-wine text-white rounded-full flex items-center justify-center shadow"
-              >
-                <X size={16} />
-              </button>
+            <div className="space-y-3">
+              <div className="relative">
+                <img
+                  src={form.photo}
+                  alt="Item"
+                  className="w-full h-48 object-contain bg-cream-dark rounded-xl"
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, photo: '', name: '', description: '', ai_identification: '' }))}
+                  className="absolute top-2 right-2 w-8 h-8 bg-wine text-white rounded-full flex items-center justify-center shadow"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              
+              {/* AI Identify Button */}
+              {!hasAIData && (
+                <button
+                  type="button"
+                  onClick={handleAIIdentify}
+                  disabled={identifying}
+                  className="w-full bg-gradient-to-r from-gold to-gold-light text-mahogany font-semibold py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {identifying ? (
+                    <>
+                      <Loader2 className="animate-spin" size={20} />
+                      Identifying...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 size={20} />
+                      Auto-fill with AI
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex gap-3">
@@ -325,7 +381,7 @@ export default function AddItem() {
             value={form.notes}
             onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
             className="w-full p-3 border bg-white"
-            rows={2}
+            rows={3}
             placeholder="Notes for yourself..."
           />
         </div>
