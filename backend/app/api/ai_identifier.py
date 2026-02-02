@@ -1,16 +1,37 @@
-"""AI Identifier API - Uses OpenAI Vision to identify antiques and estimate value"""
+"""AI Identifier API - Uses OpenAI Vision + eBay market data to identify antiques and estimate value"""
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import json
 import httpx
 from app.core.config import settings
+from app.services.ebay import ebay_client, EbayMarketData
 
 router = APIRouter()
+
 
 class IdentifyRequest(BaseModel):
     image: str  # Base64 encoded image or URL
     additional_context: Optional[str] = None  # Any notes about the item
+
+
+class EbayComparable(BaseModel):
+    title: str
+    price: float
+    condition: str
+    url: str
+
+
+class MarketDataResponse(BaseModel):
+    source: str
+    query: str
+    total_found: int
+    avg_price: float
+    min_price: float
+    max_price: float
+    median_price: float
+    comparables: list[EbayComparable]
+
 
 class IdentifyResponse(BaseModel):
     item_name: str
@@ -24,6 +45,9 @@ class IdentifyResponse(BaseModel):
     selling_tips: str
     keywords: list[str]
     confidence: str
+    # New: Market data from eBay
+    market_data: Optional[MarketDataResponse] = None
+
 
 SYSTEM_PROMPT = """You are an expert antique and vintage item appraiser with decades of experience.
 When shown an image of an item, you will:
@@ -59,33 +83,168 @@ Respond in JSON format only, with these exact fields:
     "confidence": "high/medium/low"
 }"""
 
+
+REFINE_PROMPT = """You previously identified this antique item as: {item_name}
+
+I've searched eBay for recently SOLD items matching "{search_query}" and found {total_found} completed sales.
+
+Here's the market data from actual eBay sales:
+- Average sold price: ${avg_price}
+- Median sold price: ${median_price}  
+- Price range: ${min_price} - ${max_price}
+
+Sample comparable sales:
+{comparables}
+
+Based on this REAL market data, please revise your price estimates. The eBay data shows what people ACTUALLY paid for similar items.
+
+Consider:
+- These are eBay prices (often lower than antique store prices due to no overhead)
+- Antique store/booth markup is typically 1.5-2.5x of eBay prices
+- Condition matters - adjust if this item is better/worse than comparables
+- Local Florida market may differ slightly
+
+Provide revised estimates in JSON format:
+{{
+    "estimated_value_low": <revised low based on eBay data>,
+    "estimated_value_high": <revised high based on eBay data>,
+    "suggested_price": <revised suggested price for antique store>,
+    "market_analysis": "Brief analysis of how eBay data influenced your estimate"
+}}"""
+
+
+async def search_ebay_for_item(keywords: list[str], item_name: str) -> Optional[EbayMarketData]:
+    """Search eBay for completed sales of similar items"""
+    if not ebay_client.is_configured:
+        return None
+    
+    # Build search query from keywords and item name
+    # Use most specific terms first
+    search_terms = [item_name] + keywords[:3]
+    query = " ".join(search_terms[:4])  # Limit to avoid over-specific searches
+    
+    try:
+        market_data = await ebay_client.find_completed_items(
+            query=query,
+            limit=15,
+            sold_only=True
+        )
+        
+        # If too few results, try a broader search
+        if market_data.total_found < 3 and len(keywords) > 1:
+            broader_query = " ".join(keywords[:2])
+            market_data = await ebay_client.find_completed_items(
+                query=broader_query,
+                limit=15,
+                sold_only=True
+            )
+        
+        return market_data
+    except Exception as e:
+        # Log but don't fail - eBay data is supplementary
+        print(f"eBay search error: {e}")
+        return None
+
+
+async def refine_estimate_with_market_data(
+    ai_result: dict,
+    market_data: EbayMarketData
+) -> dict:
+    """Use market data to refine AI's price estimate"""
+    
+    # Format comparables for the prompt
+    comparables_text = ""
+    for item in market_data.items[:5]:
+        comparables_text += f"- \"{item.title}\" - ${item.price:.2f} ({item.condition})\n"
+    
+    if not comparables_text:
+        comparables_text = "No specific comparables found"
+    
+    prompt = REFINE_PROMPT.format(
+        item_name=ai_result["item_name"],
+        search_query=market_data.query,
+        total_found=market_data.total_found,
+        avg_price=market_data.avg_price,
+        median_price=market_data.median_price,
+        min_price=market_data.min_price,
+        max_price=market_data.max_price,
+        comparables=comparables_text
+    )
+    
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.openai_api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": "You are an antique pricing expert. Respond only in valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 500
+            }
+        )
+        
+        if response.status_code != 200:
+            return ai_result  # Fall back to original estimate
+        
+        result = response.json()
+        content = result["choices"][0]["message"]["content"]
+        
+        # Parse JSON
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0]
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0]
+        
+        refined = json.loads(content.strip())
+        
+        # Update the original result with refined estimates
+        ai_result["estimated_value_low"] = refined.get("estimated_value_low", ai_result["estimated_value_low"])
+        ai_result["estimated_value_high"] = refined.get("estimated_value_high", ai_result["estimated_value_high"])
+        ai_result["suggested_price"] = refined.get("suggested_price", ai_result["suggested_price"])
+        
+        # Add market analysis to selling tips
+        if refined.get("market_analysis"):
+            ai_result["selling_tips"] += f"\n\n📊 Market Analysis: {refined['market_analysis']}"
+        
+        return ai_result
+
+
 @router.get("/status")
 async def ai_status():
-    """Check if AI identification is properly configured"""
-    has_key = bool(settings.openai_api_key)
-    key_preview = settings.openai_api_key[:8] + "..." if has_key else None
+    """Check if AI identification and eBay integration are properly configured"""
+    has_openai = bool(settings.openai_api_key)
+    has_ebay = ebay_client.is_configured
+    
     return {
-        "configured": has_key,
-        "key_preview": key_preview,
-        "model": "gpt-5-mini"
+        "openai_configured": has_openai,
+        "ebay_configured": has_ebay,
+        "model": "gpt-4o (vision) + gpt-4o-mini (refinement)",
+        "features": {
+            "image_identification": has_openai,
+            "market_data": has_ebay,
+            "price_refinement": has_openai and has_ebay
+        }
     }
+
 
 @router.post("/identify", response_model=IdentifyResponse)
 async def identify_item(request: IdentifyRequest):
-    """Identify an antique item from an image and get value estimate"""
+    """Identify an antique item from an image and get value estimate with eBay market data"""
     
     if not settings.openai_api_key:
-        raise HTTPException(status_code=500, detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.")
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
     
     # Prepare the image for the API
     if request.image.startswith("data:image"):
-        # Already a data URL
         image_content = request.image
     elif request.image.startswith("http"):
-        # URL - use as-is
         image_content = request.image
     else:
-        # Assume base64, add data URL prefix
         image_content = f"data:image/jpeg;base64,{request.image}"
     
     # Build the prompt
@@ -93,7 +252,7 @@ async def identify_item(request: IdentifyRequest):
     if request.additional_context:
         user_message += f"\n\nAdditional context from the seller: {request.additional_context}"
     
-    # Call OpenAI Vision API
+    # Step 1: Initial AI identification
     async with httpx.AsyncClient(timeout=90.0) as client:
         try:
             response = await client.post(
@@ -103,23 +262,21 @@ async def identify_item(request: IdentifyRequest):
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "gpt-5-mini",
+                    "model": "gpt-4o",
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {
                             "role": "user",
                             "content": [
                                 {"type": "text", "text": user_message},
-                                {"type": "image_url", "image_url": {"url": image_content}}
+                                {"type": "image_url", "image_url": {"url": image_content, "detail": "high"}}
                             ]
                         }
                     ],
-                    "max_completion_tokens": 2000,
-                    "reasoning_effort": "minimal"
+                    "max_tokens": 2000
                 }
             )
             
-            # Check for HTTP errors
             if response.status_code != 200:
                 error_body = response.text
                 try:
@@ -127,40 +284,73 @@ async def identify_item(request: IdentifyRequest):
                     error_msg = error_json.get("error", {}).get("message", error_body)
                 except:
                     error_msg = error_body
-                raise HTTPException(
-                    status_code=response.status_code, 
-                    detail=f"OpenAI API error ({response.status_code}): {error_msg}"
-                )
+                raise HTTPException(status_code=response.status_code, detail=f"OpenAI API error: {error_msg}")
             
         except httpx.TimeoutException:
-            raise HTTPException(status_code=504, detail="OpenAI API request timed out. Please try again.")
+            raise HTTPException(status_code=504, detail="OpenAI API request timed out")
         except httpx.RequestError as e:
-            raise HTTPException(status_code=500, detail=f"Network error calling OpenAI: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Network error: {str(e)}")
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Unexpected error: {type(e).__name__}: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
     
-    # Parse the response
+    # Parse AI response
     try:
         result = response.json()
         content = result["choices"][0]["message"]["content"]
         
-        # Extract JSON from the response (handle markdown code blocks)
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0]
         elif "```" in content:
             content = content.split("```")[1].split("```")[0]
         
-        data = json.loads(content.strip())
-        return IdentifyResponse(**data)
+        ai_result = json.loads(content.strip())
         
     except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to parse AI response as JSON: {str(e)}. Raw content: {content[:500]}")
-    except KeyError as e:
-        raise HTTPException(status_code=500, detail=f"Missing field in AI response: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing AI response: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing response: {str(e)}")
+    
+    # Step 2: Search eBay for market data
+    market_data = None
+    market_response = None
+    
+    if ebay_client.is_configured:
+        market_data = await search_ebay_for_item(
+            keywords=ai_result.get("keywords", []),
+            item_name=ai_result.get("item_name", "")
+        )
+        
+        if market_data and market_data.total_found > 0:
+            # Step 3: Refine estimate with market data
+            ai_result = await refine_estimate_with_market_data(ai_result, market_data)
+            
+            # Build market data response
+            market_response = MarketDataResponse(
+                source="eBay Completed Sales",
+                query=market_data.query,
+                total_found=market_data.total_found,
+                avg_price=market_data.avg_price,
+                min_price=market_data.min_price,
+                max_price=market_data.max_price,
+                median_price=market_data.median_price,
+                comparables=[
+                    EbayComparable(
+                        title=item.title,
+                        price=item.price,
+                        condition=item.condition,
+                        url=item.item_url
+                    )
+                    for item in market_data.items[:5]
+                ]
+            )
+    
+    return IdentifyResponse(
+        **ai_result,
+        market_data=market_response
+    )
+
 
 @router.post("/quick-value")
 async def quick_value(request: IdentifyRequest):
@@ -171,5 +361,36 @@ async def quick_value(request: IdentifyRequest):
         "estimated_value_low": result.estimated_value_low,
         "estimated_value_high": result.estimated_value_high,
         "suggested_price": result.suggested_price,
-        "category": result.category
+        "category": result.category,
+        "market_data": result.market_data
     }
+
+
+@router.get("/ebay-search")
+async def test_ebay_search(q: str):
+    """Test endpoint to search eBay directly"""
+    if not ebay_client.is_configured:
+        raise HTTPException(status_code=500, detail="eBay API not configured. Set EBAY_APP_ID environment variable.")
+    
+    try:
+        market_data = await ebay_client.find_completed_items(q, limit=10)
+        return {
+            "query": market_data.query,
+            "total_found": market_data.total_found,
+            "avg_price": market_data.avg_price,
+            "median_price": market_data.median_price,
+            "min_price": market_data.min_price,
+            "max_price": market_data.max_price,
+            "items": [
+                {
+                    "title": item.title,
+                    "price": item.price,
+                    "condition": item.condition,
+                    "sold_date": item.sold_date,
+                    "url": item.item_url
+                }
+                for item in market_data.items
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

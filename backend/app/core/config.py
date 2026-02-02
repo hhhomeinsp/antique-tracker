@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str = ""
     
+    # eBay API (for market price research)
+    ebay_app_id: str = ""  # Also called Client ID
+    ebay_cert_id: str = ""  # Also called Client Secret (optional for Browse API)
+    
     # App
     app_name: str = "Antique Tracker"
     debug: bool = False

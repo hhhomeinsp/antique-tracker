@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Upload, Loader2, Sparkles, DollarSign, Tag, Info, Lightbulb, X } from 'lucide-react';
+import { Camera, Upload, Loader2, Sparkles, DollarSign, Tag, Info, Lightbulb, X, TrendingUp, ExternalLink } from 'lucide-react';
 import { identifyItem } from '../api/client';
 import type { AIIdentification } from '../api/client';
 import toast from 'react-hot-toast';
@@ -214,8 +214,64 @@ export default function Identify() {
                     <Lightbulb size={18} />
                     Selling Tips
                   </div>
-                  <p className="text-sm text-mahogany leading-relaxed">{result.selling_tips}</p>
+                  <p className="text-sm text-mahogany leading-relaxed whitespace-pre-line">{result.selling_tips}</p>
                 </div>
+
+                {/* eBay Market Data */}
+                {result.market_data && result.market_data.total_found > 0 && (
+                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                    <div className="flex items-center gap-2 text-blue-700 font-semibold mb-3">
+                      <TrendingUp size={18} />
+                      eBay Market Data
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-white rounded-lg p-3 text-center">
+                        <p className="text-xs text-blue-600 uppercase">Avg Sold</p>
+                        <p className="text-lg font-bold text-blue-800">${result.market_data.avg_price}</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 text-center">
+                        <p className="text-xs text-blue-600 uppercase">Median</p>
+                        <p className="text-lg font-bold text-blue-800">${result.market_data.median_price}</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 text-center">
+                        <p className="text-xs text-blue-600 uppercase">Range</p>
+                        <p className="text-sm font-semibold text-blue-800">
+                          ${result.market_data.min_price} - ${result.market_data.max_price}
+                        </p>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 text-center">
+                        <p className="text-xs text-blue-600 uppercase">Found</p>
+                        <p className="text-lg font-bold text-blue-800">{result.market_data.total_found}</p>
+                      </div>
+                    </div>
+
+                    {result.market_data.comparables.length > 0 && (
+                      <div>
+                        <p className="text-xs text-blue-600 uppercase mb-2">Recent Sales</p>
+                        <div className="space-y-2">
+                          {result.market_data.comparables.slice(0, 3).map((comp, i) => (
+                            <a 
+                              key={i}
+                              href={comp.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 bg-white rounded-lg p-2 hover:bg-blue-100 transition text-sm"
+                            >
+                              <span className="flex-1 truncate text-mahogany">{comp.title}</span>
+                              <span className="font-semibold text-blue-700">${comp.price}</span>
+                              <ExternalLink size={14} className="text-blue-400 shrink-0" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-blue-500 mt-3 italic">
+                      * Based on "{result.market_data.query}" completed sales
+                    </p>
+                  </div>
+                )}
 
                 {/* Keywords */}
                 <div className="flex flex-wrap gap-2">

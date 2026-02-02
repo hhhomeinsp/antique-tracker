@@ -46,6 +46,24 @@ export interface Item {
   days_to_sell?: number;
 }
 
+export interface EbayComparable {
+  title: string;
+  price: number;
+  condition: string;
+  url: string;
+}
+
+export interface MarketData {
+  source: string;
+  query: string;
+  total_found: number;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  median_price: number;
+  comparables: EbayComparable[];
+}
+
 export interface AIIdentification {
   item_name: string;
   description: string;
@@ -58,6 +76,7 @@ export interface AIIdentification {
   selling_tips: string;
   keywords: string[];
   confidence: string;
+  market_data?: MarketData;
 }
 
 export interface Category {
