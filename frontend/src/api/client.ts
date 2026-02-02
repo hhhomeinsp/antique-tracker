@@ -18,6 +18,10 @@ export interface Store {
   notes?: string;
 }
 
+export interface StoreWithUsage extends Store {
+  usage_count: number;
+}
+
 export interface Item {
   id: number;
   name: string;
@@ -63,6 +67,8 @@ export interface Category {
 
 // API functions
 export const getStores = () => api.get<Store[]>('/stores/');
+export const searchStores = (q: string = '', limit: number = 20) => 
+  api.get<StoreWithUsage[]>('/stores/search', { params: { q, limit } });
 export const createStore = (store: { name: string; city?: string }) => api.post<Store>('/stores/', store);
 export const seedStores = () => api.post('/stores/seed-brevard');
 export const getCategories = () => api.get<Category[]>('/items/categories');

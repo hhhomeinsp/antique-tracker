@@ -1,12 +1,14 @@
 """Store API endpoints"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func, desc
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
 from app.core.database import get_db
 from app.models.store import Store
+from app.models.item import Item
 
 router = APIRouter()
 
@@ -24,6 +26,17 @@ class StoreResponse(BaseModel):
     city: Optional[str]
     notes: Optional[str]
     created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class StoreWithUsage(BaseModel):
+    id: int
+    name: str
+    address: Optional[str]
+    city: Optional[str]
+    notes: Optional[str]
+    usage_count: int
     
     class Config:
         from_attributes = True
@@ -87,6 +100,68 @@ DEFAULT_STORES = ONLINE_MARKETPLACES + BREVARD_STORES
 def list_stores(db: Session = Depends(get_db)):
     """Get all stores"""
     return db.query(Store).order_by(Store.name).all()
+
+@router.get("/search", response_model=List[StoreWithUsage])
+def search_stores(
+    q: str = Query(default="", description="Search query"),
+    limit: int = Query(default=20, le=100),
+    db: Session = Depends(get_db)
+):
+    """
+    Search stores with fuzzy matching.
+    Returns stores sorted by usage count (most used first), then alphabetically.
+    If no query, returns most used stores.
+    """
+    # Subquery to count items per store
+    usage_subquery = (
+        db.query(
+            Item.store_id,
+            func.count(Item.id).label('usage_count')
+        )
+        .group_by(Item.store_id)
+        .subquery()
+    )
+    
+    # Main query with left join to get usage counts
+    query = (
+        db.query(
+            Store.id,
+            Store.name,
+            Store.address,
+            Store.city,
+            Store.notes,
+            func.coalesce(usage_subquery.c.usage_count, 0).label('usage_count')
+        )
+        .outerjoin(usage_subquery, Store.id == usage_subquery.c.store_id)
+    )
+    
+    # Apply search filter if query provided
+    if q.strip():
+        search_term = f"%{q.strip().lower()}%"
+        query = query.filter(
+            func.lower(Store.name).like(search_term) |
+            func.lower(Store.city).like(search_term)
+        )
+    
+    # Order by usage count (desc), then alphabetically
+    results = (
+        query
+        .order_by(desc('usage_count'), Store.name)
+        .limit(limit)
+        .all()
+    )
+    
+    return [
+        StoreWithUsage(
+            id=r.id,
+            name=r.name,
+            address=r.address,
+            city=r.city,
+            notes=r.notes,
+            usage_count=r.usage_count
+        )
+        for r in results
+    ]
 
 @router.post("/", response_model=StoreResponse)
 def create_store(store: StoreCreate, db: Session = Depends(get_db)):
