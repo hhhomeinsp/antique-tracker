@@ -69,12 +69,16 @@ export interface Category {
 export const getStores = () => api.get<Store[]>('/stores/');
 export const searchStores = (q: string = '', limit: number = 20) => 
   api.get<StoreWithUsage[]>('/stores/search', { params: { q, limit } });
-export const createStore = (store: { name: string; city?: string }) => api.post<Store>('/stores/', store);
+export const createStore = (store: { name: string; address?: string; city?: string }) => api.post<Store>('/stores/', store);
+export const updateStore = (id: number, store: { name?: string; address?: string; city?: string }) => 
+  api.patch<Store>(`/stores/${id}`, store);
+export const deleteStore = (id: number) => api.delete(`/stores/${id}`);
 export const seedStores = () => api.post('/stores/seed-brevard');
 export const getCategories = () => api.get<Category[]>('/items/categories');
 
 export const getItems = (params?: { sold?: boolean; category?: string; store_id?: number }) => 
   api.get<Item[]>('/items/', { params });
+export const getItem = (id: number) => api.get<Item>(`/items/${id}`);
 export const createItem = (item: Partial<Item>) => api.post<Item>('/items/', item);
 export const updateItem = (id: number, item: Partial<Item>) => api.patch<Item>(`/items/${id}`, item);
 export const markSold = (id: number, sale_price: number) => 

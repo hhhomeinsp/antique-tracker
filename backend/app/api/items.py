@@ -33,10 +33,19 @@ class ItemUpdate(BaseModel):
     description: Optional[str] = None
     category: Optional[str] = None
     condition: Optional[str] = None
+    purchase_price: Optional[float] = None
+    purchase_date: Optional[datetime] = None
+    store_id: Optional[int] = None
     suggested_price: Optional[float] = None
     listed_price: Optional[float] = None
+    estimated_value_low: Optional[float] = None
+    estimated_value_high: Optional[float] = None
     notes: Optional[str] = None
     photo: Optional[str] = None
+    # Allow unselling an item
+    is_sold: Optional[bool] = None
+    sale_price: Optional[float] = None
+    sale_date: Optional[datetime] = None
 
 class ItemSale(BaseModel):
     sale_price: float

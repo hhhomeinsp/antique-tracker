@@ -1,11 +1,13 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DollarSign, Trash2, Package, X, Tag, Calendar } from 'lucide-react';
+import { DollarSign, Trash2, Package, X, Tag, Calendar, Pencil } from 'lucide-react';
 import { getItems, markSold, deleteItem } from '../api/client';
 import type { Item } from '../api/client';
 import toast from 'react-hot-toast';
 
 export default function Inventory() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | 'unsold' | 'sold'>('unsold');
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [salePrice, setSalePrice] = useState('');
@@ -139,6 +141,13 @@ export default function Inventory() {
 
                 {/* Actions */}
                 <div className="flex flex-col justify-center p-2 gap-2">
+                  <button
+                    onClick={() => navigate(`/edit/${item.id}`)}
+                    className="w-10 h-10 bg-gold/20 text-gold-dark rounded-xl flex items-center justify-center active:scale-95"
+                    title="Edit"
+                  >
+                    <Pencil size={18} />
+                  </button>
                   {!item.is_sold && (
                     <button
                       onClick={() => {
@@ -146,6 +155,7 @@ export default function Inventory() {
                         setSalePrice(item.listed_price?.toString() || item.suggested_price?.toString() || '');
                       }}
                       className="w-10 h-10 bg-sage/10 text-sage rounded-xl flex items-center justify-center active:scale-95"
+                      title="Mark Sold"
                     >
                       <DollarSign size={20} />
                     </button>
@@ -157,6 +167,7 @@ export default function Inventory() {
                       }
                     }}
                     className="w-10 h-10 bg-wine/10 text-wine rounded-xl flex items-center justify-center active:scale-95"
+                    title="Delete"
                   >
                     <Trash2 size={20} />
                   </button>

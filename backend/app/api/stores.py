@@ -194,6 +194,21 @@ def get_store(store_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Store not found")
     return store
 
+@router.patch("/{store_id}", response_model=StoreResponse)
+def update_store(store_id: int, store_update: StoreCreate, db: Session = Depends(get_db)):
+    """Update a store"""
+    store = db.query(Store).filter(Store.id == store_id).first()
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    update_data = store_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(store, field, value)
+    
+    db.commit()
+    db.refresh(store)
+    return store
+
 @router.delete("/{store_id}")
 def delete_store(store_id: int, db: Session = Depends(get_db)):
     """Delete a store"""

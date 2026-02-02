@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { PlusCircle, Sparkles, TrendingUp, Package, DollarSign, Clock } from 'lucide-react';
+import { PlusCircle, Sparkles, TrendingUp, Package, DollarSign, Clock, Store } from 'lucide-react';
 import { getAnalyticsSummary, seedStores } from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -48,6 +48,20 @@ export default function Home() {
           <span className="font-semibold text-mahogany">AI Identify</span>
         </Link>
       </div>
+
+      {/* Manage Stores Link */}
+      <Link
+        to="/stores"
+        className="card p-4 flex items-center gap-3 active:scale-[0.98] transition-all"
+      >
+        <div className="w-10 h-10 rounded-xl bg-sage/10 flex items-center justify-center">
+          <Store size={20} className="text-sage" />
+        </div>
+        <div className="flex-1">
+          <span className="font-semibold text-mahogany">Manage Stores</span>
+          <p className="text-xs text-bronze">Add, edit, or remove store locations</p>
+        </div>
+      </Link>
 
       {/* Summary Cards */}
       {isLoading ? (
