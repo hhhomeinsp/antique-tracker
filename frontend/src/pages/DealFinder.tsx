@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, Sparkles, DollarSign, X, TrendingUp, ExternalLink, Search, Flame, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { Camera, Upload, Loader2, Sparkles, X, ExternalLink, Search, Flame, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../api/client';
+import { api } from '../api/client';
 
 interface ShelfItem {
   item_name: string;
