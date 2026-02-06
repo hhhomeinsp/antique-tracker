@@ -44,7 +44,7 @@ export default function DealFinder() {
     
     setLoading(true);
     try {
-      const res = await api.post('/api/ai/scan-shelf', { image, max_items: 10 });
+      const res = await api.post('/ai/scan-shelf', { image, max_items: 10 });
       setResult(res.data);
       if (res.data.deals.length > 0) {
         toast.success(`Found ${res.data.deals.length} items!`);
