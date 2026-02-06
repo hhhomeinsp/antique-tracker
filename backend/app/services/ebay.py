@@ -279,5 +279,6 @@ class EbayFindingClient:
 
 
 # Use the Finding API client as primary (better for sold items research)
-# Use Browse API client (supports OAuth Application Token)
-ebay_client = EbayClient()
+# Use Finding API client (uses App ID, better for sold item research)
+# Falls back to Browse API if Finding API fails
+ebay_client = EbayFindingClient()
