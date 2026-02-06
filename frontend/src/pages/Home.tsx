@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { PlusCircle, Sparkles, TrendingUp, Package, DollarSign, Clock, Store } from 'lucide-react';
+import { PlusCircle, Sparkles, TrendingUp, Package, DollarSign, Clock, Store, Search } from 'lucide-react';
 import { getAnalyticsSummary, seedStores } from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -28,24 +28,33 @@ export default function Home() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         <Link
           to="/add"
-          className="card p-5 flex flex-col items-center justify-center gap-3 active:scale-95 transition-all group"
+          className="card p-4 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group"
         >
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-wine to-wine-light flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-            <PlusCircle size={28} className="text-white" />
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-wine to-wine-light flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+            <PlusCircle size={24} className="text-white" />
           </div>
-          <span className="font-semibold text-mahogany">Add Item</span>
+          <span className="font-semibold text-mahogany text-sm">Add Item</span>
         </Link>
         <Link
           to="/identify"
-          className="card p-5 flex flex-col items-center justify-center gap-3 active:scale-95 transition-all group"
+          className="card p-4 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group"
         >
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-gold-light flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-            <Sparkles size={28} className="text-white" />
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gold to-gold-light flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+            <Sparkles size={24} className="text-white" />
           </div>
-          <span className="font-semibold text-mahogany">AI Identify</span>
+          <span className="font-semibold text-mahogany text-sm">AI Identify</span>
+        </Link>
+        <Link
+          to="/deal-finder"
+          className="card p-4 flex flex-col items-center justify-center gap-2 active:scale-95 transition-all group"
+        >
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+            <Search size={24} className="text-white" />
+          </div>
+          <span className="font-semibold text-mahogany text-sm">Deal Finder</span>
         </Link>
       </div>
 

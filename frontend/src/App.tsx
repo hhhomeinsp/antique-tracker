@@ -9,6 +9,7 @@ import Inventory from './pages/Inventory';
 import Analytics from './pages/Analytics';
 import Identify from './pages/Identify';
 import Stores from './pages/Stores';
+import DealFinder from './pages/DealFinder';
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ function App() {
             <Route path="analytics" element={<Analytics />} />
             <Route path="identify" element={<Identify />} />
             <Route path="stores" element={<Stores />} />
+            <Route path="deal-finder" element={<DealFinder />} />
           </Route>
         </Routes>
       </BrowserRouter>
