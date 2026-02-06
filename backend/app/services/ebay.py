@@ -162,6 +162,10 @@ class EbayClient:
             max_price=round(max_price, 2),
             median_price=round(median_price, 2)
         )
+    
+    # Alias for compatibility with code expecting Finding API method name
+    async def find_completed_items(self, query: str, limit: int = 20, sold_only: bool = True) -> EbayMarketData:
+        return await self.search_sold_items(query, limit)
 
 
 # Alternative: eBay Finding API for completed items (XML-based, older but reliable)
@@ -275,4 +279,5 @@ class EbayFindingClient:
 
 
 # Use the Finding API client as primary (better for sold items research)
-ebay_client = EbayFindingClient()
+# Use Browse API client (supports OAuth Application Token)
+ebay_client = EbayClient()
