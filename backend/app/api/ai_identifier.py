@@ -179,7 +179,7 @@ async def refine_estimate_with_market_data(
                 "Content-Type": "application/json"
             },
             json={
-                "model": "gpt-4o-mini",
+                "model": "gpt-4.1-mini",
                 "messages": [
                     {"role": "system", "content": "You are an antique pricing expert. Respond only in valid JSON."},
                     {"role": "user", "content": prompt}
@@ -223,7 +223,7 @@ async def ai_status():
     return {
         "openai_configured": has_openai,
         "ebay_configured": has_ebay,
-        "model": "gpt-4o (vision) + gpt-4o-mini (refinement)",
+        "model": "gpt-4.1 (vision) + gpt-4.1-mini (refinement)",
         "features": {
             "image_identification": has_openai,
             "market_data": has_ebay,
@@ -262,7 +262,7 @@ async def identify_item(request: IdentifyRequest):
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "gpt-4o",
+                    "model": "gpt-4.1",
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {
@@ -494,7 +494,7 @@ async def scan_shelf_for_deals(request: ShelfScanRequest):
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "gpt-4o",
+                    "model": "gpt-4.1",
                     "messages": [
                         {
                             "role": "system",
