@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     # eBay API (for market price research)
     ebay_app_id: str = ""  # Also called Client ID
     ebay_cert_id: str = ""  # Also called Client Secret (optional for Browse API)
+    ebay_app_token: str = ""  # Pre-generated OAuth Application Token (alternative to app_id/cert_id)
     
     # App
     app_name: str = "Antique Tracker"

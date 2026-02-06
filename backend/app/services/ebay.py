@@ -37,15 +37,21 @@ class EbayClient:
     def __init__(self):
         self.app_id = settings.ebay_app_id
         self.cert_id = settings.ebay_cert_id
+        self.app_token = settings.ebay_app_token  # Pre-generated token
         self._access_token: Optional[str] = None
     
     @property
     def is_configured(self) -> bool:
-        return bool(self.app_id)
+        return bool(self.app_token) or bool(self.app_id)
     
     async def _get_access_token(self) -> str:
-        """Get OAuth token using client credentials flow"""
+        """Get OAuth token - use pre-generated token if available, otherwise fetch"""
         if self._access_token:
+            return self._access_token
+        
+        # Use pre-generated Application Token if available
+        if self.app_token:
+            self._access_token = self.app_token
             return self._access_token
         
         if not self.app_id or not self.cert_id:
