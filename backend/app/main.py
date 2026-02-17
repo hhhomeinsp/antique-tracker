@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api import items, stores, analytics, ai_identifier
+from app.api import items, stores, analytics, ai_identifier, auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,6 +25,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://antique-tracker.onrender.com",
+        "https://hardysdecor.com",
+        "https://www.hardysdecor.com",
+        "https://hardys-interiors.onrender.com",
         "http://localhost:5173",
         "http://localhost:3000",
     ],
@@ -34,6 +37,7 @@ app.add_middleware(
 )
 
 # Routes
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(items.router, prefix="/api/items", tags=["Items"])
 app.include_router(stores.router, prefix="/api/stores", tags=["Stores"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])

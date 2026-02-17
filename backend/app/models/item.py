@@ -60,6 +60,9 @@ class Item(Base):
     estimated_value_low = Column(Float, nullable=True)
     estimated_value_high = Column(Float, nullable=True)
     
+    # Public listing
+    is_listed = Column(Boolean, default=False)
+    
     # Photo (base64 or URL)
     photo = Column(Text, nullable=True)
     

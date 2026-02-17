@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     ebay_cert_id: str = ""  # Also called Client Secret (optional for Browse API)
     ebay_app_token: str = ""  # Pre-generated OAuth Application Token (alternative to app_id/cert_id)
     
+    # Auth
+    admin_email: str = "admin@hardysinteriors.com"
+    admin_password: str = "changeme"
+    jwt_secret: str = "hardys-interiors-secret-key-change-in-production"
+    
     # App
     app_name: str = "Antique Tracker"
     debug: bool = False

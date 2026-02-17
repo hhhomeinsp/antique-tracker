@@ -61,6 +61,7 @@ class ItemResponse(BaseModel):
     purchase_date: datetime
     store_id: Optional[int]
     is_sold: bool
+    is_listed: bool = False
     sale_price: Optional[float]
     sale_date: Optional[datetime]
     suggested_price: Optional[float]
@@ -78,6 +79,36 @@ class ItemResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+# Public endpoint - no auth required
+@router.get("/public", response_model=List[ItemResponse])
+def list_public_items(
+    category: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    limit: int = Query(default=50, le=200),
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    """Get items listed for public sale (no auth required)"""
+    query = db.query(Item).filter(Item.is_listed == True, Item.is_sold == False)
+    
+    if category:
+        query = query.filter(Item.category == category)
+    if min_price is not None:
+        query = query.filter(Item.listed_price >= min_price)
+    if max_price is not None:
+        query = query.filter(Item.listed_price <= max_price)
+    
+    items = query.order_by(desc(Item.created_at)).offset(offset).limit(limit).all()
+    
+    result = []
+    for item in items:
+        item_dict = ItemResponse.model_validate(item).model_dump()
+        result.append(item_dict)
+    
+    return result
+
 
 # Category list endpoint
 @router.get("/categories")
@@ -184,6 +215,18 @@ def mark_item_sold(item_id: int, sale: ItemSale, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(item)
     return item
+
+@router.put("/{item_id}/toggle-listed", response_model=ItemResponse)
+def toggle_listed(item_id: int, db: Session = Depends(get_db)):
+    """Toggle an item's public listing status"""
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item.is_listed = not item.is_listed
+    db.commit()
+    db.refresh(item)
+    return item
+
 
 @router.delete("/{item_id}")
 def delete_item(item_id: int, db: Session = Depends(get_db)):
