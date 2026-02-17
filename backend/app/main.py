@@ -30,6 +30,7 @@ app.add_middleware(
         "https://hardys-interiors.onrender.com",
         "http://localhost:5173",
         "http://localhost:3000",
+        "http://localhost:3333",
     ],
     allow_credentials=True,
     allow_methods=["*"],
