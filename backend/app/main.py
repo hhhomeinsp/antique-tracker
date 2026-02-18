@@ -3,14 +3,30 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from sqlalchemy import inspect, text
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.api import items, stores, analytics, ai_identifier, auth
+
+def auto_migrate():
+    """Add missing columns to existing tables and set defaults."""
+    inspector = inspect(engine)
+    
+    # Check if is_listed column exists on items table
+    if 'items' in inspector.get_table_names():
+        columns = [c['name'] for c in inspector.get_columns('items')]
+        if 'is_listed' not in columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE items ADD COLUMN is_listed BOOLEAN DEFAULT TRUE"))
+                conn.execute(text("UPDATE items SET is_listed = TRUE WHERE is_listed IS NULL"))
+                print("Added is_listed column and set all existing items to listed")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create tables on startup
     Base.metadata.create_all(bind=engine)
+    # Add missing columns to existing tables
+    auto_migrate()
     yield
 
 app = FastAPI(
